@@ -5,6 +5,7 @@ import {
   Trash2, Eye, X, MessageCircle, Mail, ShieldCheck, Loader2,
 } from "lucide-react";
 import { api, adminHeaders } from "../lib/apiClient";
+import FloorPlan from "../components/FloorPlan";
 
 /* ============================================================
    Warna & label zon (paparan sahaja - data sebenar datang dari DB)
@@ -117,44 +118,6 @@ function SignaturePad({ onChange }) {
         onMouseDown={start} onMouseMove={move} onMouseUp={end} onMouseLeave={end}
         onTouchStart={start} onTouchMove={move} onTouchEnd={end} />
       <button onClick={clear} type="button" className="mt-2 text-xs text-slate-500 underline">Padam &amp; tandatangan semula</button>
-    </div>
-  );
-}
-
-/* ============================================================
-   LotGrid
-   ============================================================ */
-function LotBox({ lot, onClick }) {
-  const c = COLOR_MAP[ZONE_META[lot.zone_code]?.color || "blue"];
-  const style =
-    lot.status === "available" ? `${c.bg} ${c.border} ${c.text} cursor-pointer hover:ring-2 ${c.ring}`
-    : lot.status === "pending" ? "bg-slate-100 border-slate-300 text-slate-400 cursor-not-allowed"
-    : "bg-slate-200 border-slate-300 text-slate-400 cursor-not-allowed line-through";
-  return (
-    <button type="button" disabled={lot.status !== "available"} onClick={() => onClick(lot)}
-      className={`aspect-square border rounded-md text-[11px] font-semibold flex items-center justify-center transition ${style}`}
-      title={`Lot ${lot.lot_number} - ${lot.status}`}>
-      {lot.lot_number}
-    </button>
-  );
-}
-
-function ZoneSection({ zone, lots, onSelectLot }) {
-  const c = COLOR_MAP[ZONE_META[zone.code]?.color || "blue"];
-  const zoneLots = lots.filter((l) => l.zone_code === zone.code).sort((a, b) => a.lot_number - b.lot_number);
-  const available = zoneLots.filter((l) => l.status === "available").length;
-  return (
-    <div className={`rounded-xl border ${c.border} ${c.bg} p-4 mb-4`}>
-      <div className="flex items-center justify-between mb-3">
-        <div>
-          <span className={`inline-block text-xs font-bold px-2 py-1 rounded ${c.chip}`}>{zone.name}</span>
-          <span className="ml-2 text-sm font-medium text-slate-700">{zone.tagline}</span>
-        </div>
-        <span className="text-xs text-slate-500">{available} kosong / {zoneLots.length} lot</span>
-      </div>
-      <div className="grid grid-cols-6 sm:grid-cols-8 gap-1.5">
-        {zoneLots.map((l) => <LotBox key={l.lot_number} lot={l} onClick={onSelectLot} />)}
-      </div>
     </div>
   );
 }
@@ -735,7 +698,7 @@ export default function Home() {
           <div className="bg-white rounded-lg border p-2"><span className="inline-block w-3 h-3 rounded-full bg-slate-400 mb-1"></span><p className="text-slate-500">Disewa</p></div>
         </div>
 
-        {boot.zones.map((z) => <ZoneSection key={z.code} zone={z} lots={boot.lots} onSelectLot={setSelectedLot} />)}
+        <FloorPlan lots={boot.lots} zones={boot.zones} onSelectLot={setSelectedLot} />
         <p className="text-center text-[11px] text-slate-400 mt-2">Ketik mana-mana lot berwarna untuk membuat tempahan.</p>
       </div>
 
