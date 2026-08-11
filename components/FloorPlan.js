@@ -53,6 +53,20 @@ function sequenceRow(items, startX, y, boxW = BOX_W, boxH = BOX_H) {
   return { positions, endX: x };
 }
 
+// Susun sekumpulan lot bertengah (center) di dalam satu "footprint" (julat x)
+// supaya blok atas sejajar tepat di atas kolum sepadan di bawahnya - macam
+// pelan asal (lot 60-57 di atas kolum 11-18/19-26, dsb).
+function centeredGroup(lotNumbers, footprintStart, footprintWidth, y, boxW, boxH, innerGap = 6) {
+  const contentW = lotNumbers.length * boxW + (lotNumbers.length - 1) * innerGap;
+  let x = footprintStart + (footprintWidth - contentW) / 2;
+  const positions = lotNumbers.map((n) => {
+    const p = { type: "lot", n, x, y, w: boxW, h: boxH };
+    x += boxW + innerGap;
+    return p;
+  });
+  return positions;
+}
+
 const COL_X = { A: 60, B: 320, C: 320 + BOX_W + GAP, D: 700, E: 700 + BOX_W + GAP, F: 1080 };
 const GRID_TOP = 296;
 
@@ -66,32 +80,23 @@ function buildLayout() {
   columnLots([35,36,37,38,39,40,41,42], COL_X.E, GRID_TOP).forEach((p) => (positions[p.n] = { x: p.x, y: p.y, w: BOX_W, h: BOX_H }));
   columnLots([43,44,45,46,47,48,49,50,51,52], COL_X.F, GRID_TOP).forEach((p) => (positions[p.n] = { x: p.x, y: p.y, w: BOX_W, h: BOX_H }));
 
-  // baris atas: lot 61 + pasangan (60,59)(58,57)(56,55)(54,53) + pondok
-  // (susunan berpasangan mengikut lakaran, kotak POTRET/tegak - bukan landskap)
+  // baris atas: lot 61 + blok 60-57 + blok 56-53 + pondok, SETIAP kumpulan
+  // ditengahkan tepat di atas kolum sepadan di bawah (macam pelan asal).
   const TOP_Y = 76;
-  const { positions: topPos } = sequenceRow(
-    [
-      { type: "lot", n: 61 },
-      { type: "gap", size: 22 },
-      { type: "lot", n: 60 }, { type: "lot", n: 59 },
-      { type: "gap", size: 22 },
-      { type: "lot", n: 58 }, { type: "lot", n: 57 },
-      { type: "gap", size: 22 },
-      { type: "lot", n: 56 }, { type: "lot", n: 55 },
-      { type: "gap", size: 22 },
-      { type: "lot", n: 54 }, { type: "lot", n: 53 },
-      { type: "gap", size: 22 },
-      { type: "pondok" },
-    ],
-    COL_X.A,
-    TOP_Y,
-    TOP_BOX_W,
-    TOP_BOX_H
-  );
+  const footprint2W = COL_X.C + BOX_W - COL_X.B;
+  const footprint3W = COL_X.E + BOX_W - COL_X.D;
+
+  const group1 = centeredGroup([61], COL_X.A, BOX_W, TOP_Y, TOP_BOX_W, TOP_BOX_H);
+  const group2 = centeredGroup([60, 59, 58, 57], COL_X.B, footprint2W, TOP_Y, TOP_BOX_W, TOP_BOX_H);
+  const group3 = centeredGroup([56, 55, 54, 53], COL_X.D, footprint3W, TOP_Y, TOP_BOX_W, TOP_BOX_H);
+  const pondokW = 130;
+  const pondokX = COL_X.F + (BOX_W - pondokW) / 2;
+  const pondokMeta = { type: "pondok", x: pondokX, y: TOP_Y, w: pondokW, h: TOP_BOX_H };
+
+  const topPos = [...group1, ...group2, ...group3, pondokMeta];
   const meta = { topRow: topPos, topY: TOP_Y };
   topPos.forEach((p) => {
     if (p.type === "lot") positions[p.n] = { x: p.x, y: p.y, w: p.w, h: p.h };
-    if (p.type === "pondok") p.w = 130; // pondok lebih lebar drpd lot supaya teks muat
   });
 
   return { positions, meta };
