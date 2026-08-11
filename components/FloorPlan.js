@@ -1,21 +1,20 @@
 import { useMemo } from "react";
 
 /* ============================================================
-   PETA TAPAK — v2
-   Perbaikan: (1) saiz diperbesarkan untuk ketepatan sentuhan di
-   telefon, (2) papan tanda "Pintu Keluar" dipindah ke jalur atas
-   supaya tidak bertindih dengan lot 61, (3) label MASUK/KELUAR
-   dipindah ke mulut lorong (atas grid utama).
+   PETA TAPAK — v3
+   - Kotak lot diperbesarkan supaya lot yang disewa boleh papar
+     no. plat kenderaan + tempoh sewa terus di dalam kotak.
+   - Baris atas (signage, lot 61, blok 60-57, blok 56-53, pondok)
+     kini satu baris seragam (semua kotak saiz sama).
+   - Koordinat dijana secara programatik (helper functions) untuk
+     kurangkan ralat pengiraan manual.
    61 lot (tiada lot 62).
    ============================================================ */
 
-const BOX_W = 76;
-const BOX_H = 34;
-const ROW_PITCH = 42;
-const TOP_H = 44;
-const GRID_TOP = 210;
-
-const COL_X = { A: 56, B: 300, C: 300 + BOX_W + 6, D: 660, E: 660 + BOX_W + 6, F: 1020 };
+const BOX_W = 108;
+const BOX_H = 62;
+const GAP = 8;
+const ROW_PITCH = BOX_H + GAP;
 
 const ZONE_ACCENT = {
   A: "#60a5fa", // biru - Pakej Semester
@@ -29,36 +28,71 @@ const LOT_AVAILABLE_FILL = "#475569";
 const LOT_OCCUPIED_FILL = "#233042";
 const LOT_PENDING_FILL = "#57430f";
 
-function colLots(lotNumbers, x, topY) {
+/* ---------- helper: susun kolum menegak ---------- */
+function columnLots(lotNumbers, x, topY) {
   return lotNumbers.map((n, i) => ({ n, x, y: topY + i * ROW_PITCH }));
 }
-function topLots(lotNumbers, startX, span) {
-  const w = (span - (lotNumbers.length - 1) * 6) / lotNumbers.length;
-  return lotNumbers.map((n, i) => ({ n, x: startX + i * (w + 6), w }));
+
+/* ---------- helper: susun baris mendatar (lebar seragam) ---------- */
+function sequenceRow(items, startX, y) {
+  const positions = [];
+  let x = startX;
+  for (const item of items) {
+    if (item.type === "gap") {
+      x += item.size;
+      continue;
+    }
+    positions.push({ ...item, x, y, w: BOX_W, h: BOX_H });
+    x += BOX_W + GAP;
+  }
+  return { positions, endX: x };
 }
+
+const COL_X = { A: 60, B: 320, C: 320 + BOX_W + GAP, D: 700, E: 700 + BOX_W + GAP, F: 1080 };
+const GRID_TOP = 236;
 
 function buildLayout() {
   const positions = {};
-  colLots([1,2,3,4,5,6,7,8,9,10], COL_X.A, GRID_TOP).forEach((p) => (positions[p.n] = { x: p.x, y: p.y, w: BOX_W, h: BOX_H }));
-  colLots([18,17,16,15,14,13,12,11], COL_X.B, GRID_TOP).forEach((p) => (positions[p.n] = { x: p.x, y: p.y, w: BOX_W, h: BOX_H }));
-  colLots([19,20,21,22,23,24,25,26], COL_X.C, GRID_TOP).forEach((p) => (positions[p.n] = { x: p.x, y: p.y, w: BOX_W, h: BOX_H }));
-  colLots([34,33,32,31,30,29,28,27], COL_X.D, GRID_TOP).forEach((p) => (positions[p.n] = { x: p.x, y: p.y, w: BOX_W, h: BOX_H }));
-  colLots([35,36,37,38,39,40,41,42], COL_X.E, GRID_TOP).forEach((p) => (positions[p.n] = { x: p.x, y: p.y, w: BOX_W, h: BOX_H }));
-  colLots([43,44,45,46,47,48,49,50,51,52], COL_X.F, GRID_TOP).forEach((p) => (positions[p.n] = { x: p.x, y: p.y, w: BOX_W, h: BOX_H }));
 
-  // lot 61 bersendirian - baris atas, TIADA lagi bertindih dgn signboard
-  positions[61] = { x: COL_X.A, y: 86, w: BOX_W, h: TOP_H };
-  topLots([60, 59, 58, 57], COL_X.B, BOX_W * 2 + 6).forEach((p) => (positions[p.n] = { x: p.x, y: 86, w: p.w, h: TOP_H }));
-  topLots([56, 55, 54, 53], COL_X.D, BOX_W * 2 + 6).forEach((p) => (positions[p.n] = { x: p.x, y: 86, w: p.w, h: TOP_H }));
+  columnLots([1,2,3,4,5,6,7,8,9,10], COL_X.A, GRID_TOP).forEach((p) => (positions[p.n] = { x: p.x, y: p.y, w: BOX_W, h: BOX_H }));
+  columnLots([18,17,16,15,14,13,12,11], COL_X.B, GRID_TOP).forEach((p) => (positions[p.n] = { x: p.x, y: p.y, w: BOX_W, h: BOX_H }));
+  columnLots([19,20,21,22,23,24,25,26], COL_X.C, GRID_TOP).forEach((p) => (positions[p.n] = { x: p.x, y: p.y, w: BOX_W, h: BOX_H }));
+  columnLots([34,33,32,31,30,29,28,27], COL_X.D, GRID_TOP).forEach((p) => (positions[p.n] = { x: p.x, y: p.y, w: BOX_W, h: BOX_H }));
+  columnLots([35,36,37,38,39,40,41,42], COL_X.E, GRID_TOP).forEach((p) => (positions[p.n] = { x: p.x, y: p.y, w: BOX_W, h: BOX_H }));
+  columnLots([43,44,45,46,47,48,49,50,51,52], COL_X.F, GRID_TOP).forEach((p) => (positions[p.n] = { x: p.x, y: p.y, w: BOX_W, h: BOX_H }));
 
-  return positions;
+  // baris atas: signage + lot 61 + blok 60-57 + blok 56-53 + pondok (satu baris, kotak seragam)
+  const TOP_Y = 96;
+  const { positions: topPos } = sequenceRow(
+    [
+      { type: "sign" },
+      { type: "lot", n: 61 },
+      { type: "gap", size: 26 },
+      { type: "lot", n: 60 }, { type: "lot", n: 59 }, { type: "lot", n: 58 }, { type: "lot", n: 57 },
+      { type: "gap", size: 26 },
+      { type: "lot", n: 56 }, { type: "lot", n: 55 }, { type: "lot", n: 54 }, { type: "lot", n: 53 },
+      { type: "gap", size: 26 },
+      { type: "pondok" },
+    ],
+    COL_X.A,
+    TOP_Y
+  );
+  const meta = { topRow: topPos, topY: TOP_Y };
+  topPos.forEach((p) => {
+    if (p.type === "lot") positions[p.n] = { x: p.x, y: p.y, w: p.w, h: p.h };
+  });
+
+  return { positions, meta };
 }
 
-const LAYOUT = buildLayout();
-const VIEW_W = 1180;
-const VIEW_H = 700;
+const { positions: LAYOUT, meta: LAYOUT_META } = buildLayout();
+const signMeta = LAYOUT_META.topRow.find((p) => p.type === "sign");
+const pondokMeta = LAYOUT_META.topRow.find((p) => p.type === "pondok");
+const lastColF = { x: COL_X.F, rows: 10 };
+const VIEW_W = Math.max(pondokMeta.x + pondokMeta.w, COL_X.F + BOX_W) + 60;
+const VIEW_H = GRID_TOP + 10 * ROW_PITCH + 70;
 
-function BigArrow({ x, y, dir, size = 26, color = "#f8fafc" }) {
+function BigArrow({ x, y, dir, size = 28, color = "#f8fafc" }) {
   const r = { up: 0, right: 90, down: 180, left: 270 }[dir];
   return (
     <g transform={`translate(${x},${y}) rotate(${r})`}>
@@ -77,12 +111,19 @@ function ZoneChip({ code, label }) {
   );
 }
 
-function LotBox({ n, pos, zoneCode, status, onClick }) {
+function formatShortDate(dateStr) {
+  if (!dateStr) return "";
+  const d = new Date(dateStr);
+  return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function LotBox({ n, pos, zoneCode, status, plateNumber, endDate, onClick }) {
   const isAvailable = status === "available";
   const isPending = status === "pending";
+  const isOccupied = status === "occupied";
   const fill = isAvailable ? LOT_AVAILABLE_FILL : isPending ? LOT_PENDING_FILL : LOT_OCCUPIED_FILL;
   const stroke = isAvailable ? ZONE_ACCENT[zoneCode] || "#94a3b8" : isPending ? "#fbbf24" : "#475569";
-  const textColor = isAvailable ? "#f8fafc" : isPending ? "#fde68a" : "#64748b";
+  const textColor = isAvailable ? "#f8fafc" : isPending ? "#fde68a" : "#cbd5e1";
 
   return (
     <g
@@ -91,52 +132,37 @@ function LotBox({ n, pos, zoneCode, status, onClick }) {
       style={{ cursor: isAvailable ? "pointer" : "default" }}
       className={isAvailable ? "transition-opacity hover:opacity-75" : ""}
     >
-      <rect width={pos.w} height={pos.h} rx="4" fill={fill} stroke={stroke} strokeWidth={isAvailable ? 2.5 : 1.6} />
-      <text
-        x={pos.w / 2}
-        y={pos.h / 2 + 5}
-        textAnchor="middle"
-        fontSize={pos.h > 38 ? "16" : "14.5"}
-        fontWeight="700"
-        fontFamily="ui-monospace, monospace"
-        fill={textColor}
-      >
-        {n}
-      </text>
-      {status === "occupied" && <line x1={5} y1={pos.h - 5} x2={pos.w - 5} y2={5} stroke="#475569" strokeWidth="1.6" />}
+      <rect width={pos.w} height={pos.h} rx="6" fill={fill} stroke={stroke} strokeWidth={isAvailable ? 2.5 : 1.6} />
+
+      {isOccupied ? (
+        <>
+          <text x={pos.w / 2} y="20" textAnchor="middle" fontSize="14" fontWeight="800" fontFamily="ui-monospace, monospace" fill={textColor}>{n}</text>
+          <text x={pos.w / 2} y="38" textAnchor="middle" fontSize="12.5" fontWeight="700" fontFamily="ui-monospace, monospace" fill="#f8fafc" letterSpacing="0.5">{plateNumber || "-"}</text>
+          <text x={pos.w / 2} y="53" textAnchor="middle" fontSize="9.5" fontWeight="500" fill="#94a3b8">hingga {formatShortDate(endDate)}</text>
+        </>
+      ) : (
+        <text x={pos.w / 2} y={pos.h / 2 + 6} textAnchor="middle" fontSize="19" fontWeight="700" fontFamily="ui-monospace, monospace" fill={textColor}>{n}</text>
+      )}
     </g>
   );
 }
 
-function SignBoard({ x, y, w, h, lines, fontSize = 12 }) {
+function SignBoard({ x, y, w, h }) {
   return (
     <g transform={`translate(${x},${y})`}>
-      <rect width={w} height={h} rx="5" fill="#f8fafc" stroke="#cbd5e1" strokeWidth="1.2" />
-      {lines.map((line, i) => (
-        <text
-          key={i}
-          x={w / 2}
-          y={h / 2 - ((lines.length - 1) * (fontSize + 2)) / 2 + i * (fontSize + 2) + 5}
-          textAnchor="middle"
-          fontSize={fontSize}
-          fontWeight="800"
-          fill="#1e293b"
-          letterSpacing="0.3"
-        >
-          {line}
-        </text>
-      ))}
+      <rect width={w} height={h} rx="6" fill="#f8fafc" stroke="#cbd5e1" strokeWidth="1.4" />
+      <text x={w / 2} y={h / 2 - 6} textAnchor="middle" fontSize="12.5" fontWeight="800" fill="#1e293b" letterSpacing="0.3">KELUAR</text>
+      <text x={w / 2} y={h / 2 + 12} textAnchor="middle" fontSize="10" fontWeight="700" fill="#475569" letterSpacing="0.3">JLN UTAMA</text>
     </g>
   );
 }
 
-function GuardHouse({ x, y }) {
-  const w = 170;
+function GuardHouse({ x, y, w, h }) {
   return (
     <g transform={`translate(${x},${y})`}>
-      <rect width={w} height={TOP_H} rx="5" fill="#f8fafc" stroke="#cbd5e1" strokeWidth="1.2" />
-      <text x={w / 2} y={TOP_H / 2 - 2} textAnchor="middle" fontSize="13" fontWeight="800" fill="#1e293b" letterSpacing="0.3">PONDOK</text>
-      <text x={w / 2} y={TOP_H / 2 + 15} textAnchor="middle" fontSize="13" fontWeight="800" fill="#1e293b" letterSpacing="0.3">PENGAWAL</text>
+      <rect width={w} height={h} rx="6" fill="#f8fafc" stroke="#cbd5e1" strokeWidth="1.4" />
+      <text x={w / 2} y={h / 2 - 4} textAnchor="middle" fontSize="12" fontWeight="800" fill="#1e293b" letterSpacing="0.3">PONDOK</text>
+      <text x={w / 2} y={h / 2 + 13} textAnchor="middle" fontSize="12" fontWeight="800" fill="#1e293b" letterSpacing="0.3">PENGAWAL</text>
     </g>
   );
 }
@@ -148,14 +174,6 @@ function BoomGate({ x, y, rotate = 0 }) {
       <rect x="-13" y="-4" width="6" height="8" fill="#1e293b" />
       <rect x="3" y="-4" width="6" height="8" fill="#1e293b" />
     </g>
-  );
-}
-
-function LaneMouthLabel({ x, text }) {
-  return (
-    <text x={x} y={GRID_TOP - 14} textAnchor="middle" fontSize="13" fontWeight="800" fill="#e2e8f0" letterSpacing="1">
-      {text}
-    </text>
   );
 }
 
@@ -183,16 +201,16 @@ export default function FloorPlan({ lots, zones, onSelectLot }) {
       </div>
 
       <div className="overflow-x-auto rounded-lg" style={{ border: "4px solid #14532d" }}>
-        <svg viewBox={`0 0 ${VIEW_W} ${VIEW_H}`} className="w-full min-w-[980px] block" style={{ background: ASPHALT }}>
-          {/* jalur atas: papan tanda pintu keluar (sekecil kotak lot) + anak panah arah */}
+        <svg viewBox={`0 0 ${VIEW_W} ${VIEW_H}`} className="w-full min-w-[1180px] block" style={{ background: ASPHALT }}>
+          {/* jalur atas: anak panah arah */}
           <rect x="0" y="0" width={VIEW_W} height="76" fill={ASPHALT_DARK} />
-          <SignBoard x={COL_X.A} y="16" w={BOX_W} h={TOP_H} lines={["KELUAR", "JLN UTAMA"]} fontSize="8.5" />
-          <BigArrow x={300} y="38" dir="left" size="30" />
-          <BigArrow x={650} y="38" dir="left" size="30" />
-          <BigArrow x={980} y="38" dir="left" size="26" />
+          <BigArrow x={VIEW_W * 0.3} y="38" dir="left" size="30" />
+          <BigArrow x={VIEW_W * 0.55} y="38" dir="left" size="30" />
+          <BigArrow x={VIEW_W * 0.8} y="38" dir="left" size="26" />
 
-          {/* pondok pengawal (baris atas, kanan sekali) */}
-          <GuardHouse x={COL_X.F - 20} y={86} />
+          {/* baris signage + lot 61 + blok atas + pondok */}
+          <SignBoard x={signMeta.x} y={signMeta.y} w={signMeta.w} h={signMeta.h} />
+          <GuardHouse x={pondokMeta.x} y={pondokMeta.y} w={pondokMeta.w} h={pondokMeta.h} />
 
           {/* lorong dua-hala menegak */}
           {[
@@ -201,19 +219,19 @@ export default function FloorPlan({ lots, zones, onSelectLot }) {
             { x: COL_X.E + BOX_W, w: COL_X.F - (COL_X.E + BOX_W), mid: lane3Mid, label: "KELUAR" },
           ].map((lane, i) => (
             <g key={i}>
-              <rect x={lane.x} y={GRID_TOP - 8} width={lane.w} height="588" fill={ASPHALT} />
-              <line x1={lane.mid} y1={GRID_TOP - 8} x2={lane.mid} y2={GRID_TOP + 580} stroke="#94a3b8" strokeWidth="1.5" strokeDasharray="8 8" opacity="0.5" />
+              <rect x={lane.x} y={GRID_TOP - 8} width={lane.w} height={10 * ROW_PITCH} fill={ASPHALT} />
+              <line x1={lane.mid} y1={GRID_TOP - 8} x2={lane.mid} y2={GRID_TOP + 10 * ROW_PITCH - 20} stroke="#94a3b8" strokeWidth="1.5" strokeDasharray="8 8" opacity="0.5" />
               <BoomGate x={lane.mid} y={GRID_TOP - 34} />
-              <LaneMouthLabel x={lane.mid} text={lane.label} />
-              <BigArrow x={lane.mid - (lane.w > 90 ? 20 : 0)} y={GRID_TOP + 130} dir="up" size="24" />
-              <BigArrow x={lane.mid + (lane.w > 90 ? 20 : 0)} y={GRID_TOP + 130} dir="down" size="24" />
-              <BigArrow x={lane.mid - (lane.w > 90 ? 20 : 0)} y={GRID_TOP + 370} dir="up" size="24" />
-              <BigArrow x={lane.mid + (lane.w > 90 ? 20 : 0)} y={GRID_TOP + 370} dir="down" size="24" />
+              <text x={lane.mid} y={GRID_TOP - 14} textAnchor="middle" fontSize="13" fontWeight="800" fill="#e2e8f0" letterSpacing="1">{lane.label}</text>
+              <BigArrow x={lane.mid - (lane.w > 100 ? 22 : 0)} y={GRID_TOP + 150} dir="up" size="24" />
+              <BigArrow x={lane.mid + (lane.w > 100 ? 22 : 0)} y={GRID_TOP + 150} dir="down" size="24" />
+              <BigArrow x={lane.mid - (lane.w > 100 ? 22 : 0)} y={GRID_TOP + 420} dir="up" size="24" />
+              <BigArrow x={lane.mid + (lane.w > 100 ? 22 : 0)} y={GRID_TOP + 420} dir="down" size="24" />
             </g>
           ))}
 
           {/* label REZAB JALAN di kiri */}
-          <text x="20" y={GRID_TOP + 210} fontSize="12" fontWeight="700" fill="#94a3b8" letterSpacing="2" transform={`rotate(-90 20 ${GRID_TOP + 210})`}>
+          <text x="20" y={GRID_TOP + 250} fontSize="12" fontWeight="700" fill="#94a3b8" letterSpacing="2" transform={`rotate(-90 20 ${GRID_TOP + 250})`}>
             REZAB JALAN 15FT
           </text>
 
@@ -222,13 +240,24 @@ export default function FloorPlan({ lots, zones, onSelectLot }) {
             const lotNum = Number(n);
             const data = lotByNumber[lotNum];
             if (!data) return null;
-            return <LotBox key={n} n={lotNum} pos={pos} zoneCode={data.zone_code} status={data.status} onClick={onSelectLot} />;
+            return (
+              <LotBox
+                key={n}
+                n={lotNum}
+                pos={pos}
+                zoneCode={data.zone_code}
+                status={data.status}
+                plateNumber={data.plate_number}
+                endDate={data.end_date}
+                onClick={onSelectLot}
+              />
+            );
           })}
 
           {/* jalur bawah */}
           <rect x="0" y={VIEW_H - 66} width={VIEW_W} height="66" fill={ASPHALT_DARK} />
-          <BigArrow x={420} y={VIEW_H - 38} dir="right" size="28" />
-          <BigArrow x={820} y={VIEW_H - 38} dir="right" size="28" />
+          <BigArrow x={VIEW_W * 0.35} y={VIEW_H - 38} dir="right" size="28" />
+          <BigArrow x={VIEW_W * 0.65} y={VIEW_H - 38} dir="right" size="28" />
         </svg>
       </div>
     </div>

@@ -641,6 +641,12 @@ export default function Home() {
 
   useEffect(() => { loadBoot(); }, [loadBoot]);
 
+  useEffect(() => {
+    // Bila pautan dari notifikasi WhatsApp/emel (?admin=1) diklik, terus buka mod admin.
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("admin") === "1") setShowAdmin(true);
+  }, []);
+
   const tryAdminLogin = async () => {
     setCheckingPw(true); setPwError("");
     try {
@@ -672,7 +678,15 @@ export default function Home() {
   const totalAvailable = boot.lots.filter((l) => l.status === "available").length;
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-100 via-slate-50 to-slate-200 pb-10">
+    <div className="min-h-screen bg-slate-100 pb-10 relative overflow-hidden">
+      {/* Latar belakang dekoratif - lengkung warna lembut (mesh gradient), tema sepadan dengan warna zon */}
+      <div className="pointer-events-none fixed inset-0 overflow-hidden -z-10">
+        <div className="absolute -top-32 -left-24 w-[420px] h-[420px] rounded-full bg-blue-300/30 blur-[100px]" />
+        <div className="absolute top-1/3 -right-32 w-[480px] h-[480px] rounded-full bg-teal-300/25 blur-[110px]" />
+        <div className="absolute bottom-0 left-1/4 w-[380px] h-[380px] rounded-full bg-amber-200/30 blur-[100px]" />
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-white/40 to-slate-100" />
+      </div>
+
       <header className="bg-slate-900 text-white px-4 py-4 sticky top-0 z-30">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-2">
