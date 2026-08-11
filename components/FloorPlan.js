@@ -105,7 +105,7 @@ function buildLayout() {
 const { positions: LAYOUT, meta: LAYOUT_META } = buildLayout();
 const pondokMeta = LAYOUT_META.topRow.find((p) => p.type === "pondok");
 const VIEW_W = Math.max(pondokMeta.x + pondokMeta.w, COL_X.F + BOX_W) + 60;
-const VIEW_H = GRID_TOP + 10 * ROW_PITCH + 70;
+const VIEW_H = GRID_TOP + 10 * ROW_PITCH + 110;
 
 function BigArrow({ x, y, dir, size = 28, color = "#f8fafc" }) {
   const r = { up: 0, right: 90, down: 180, left: 270 }[dir];
@@ -247,10 +247,16 @@ export default function FloorPlan({ lots, zones, onSelectLot }) {
             </g>
           ))}
 
-          {/* label REZAB JALAN di kiri */}
-          <text x="20" y={GRID_TOP + 250} fontSize="12" fontWeight="700" fill="#94a3b8" letterSpacing="2" transform={`rotate(-90 20 ${GRID_TOP + 250})`}>
-            REZAB JALAN 15FT
-          </text>
+          {/* garis sempadan - pisahkan tapak parkir daripada Jalan Pangsapuri Desa Siswa */}
+          <line x1="46" y1="0" x2="46" y2={VIEW_H} stroke="#000000" strokeWidth="3" />
+
+          {/* label jalan utama di kiri - teks tebal putih atas latar hitam */}
+          <g transform={`rotate(-90 24 ${GRID_TOP + 250})`}>
+            <rect x={24 - 130} y={GRID_TOP + 250 - 12} width="260" height="24" rx="4" fill="#000000" />
+            <text x="24" y={GRID_TOP + 250 + 5} textAnchor="middle" fontSize="13" fontWeight="800" fill="#ffffff" letterSpacing="1.5">
+              JALAN PANGSAPURI DESA SISWA
+            </text>
+          </g>
 
           {/* semua lot */}
           {Object.entries(LAYOUT).map(([n, pos]) => {
@@ -273,8 +279,8 @@ export default function FloorPlan({ lots, zones, onSelectLot }) {
 
           {/* jalur bawah */}
           <rect x="0" y={VIEW_H - 66} width={VIEW_W} height="66" fill={ASPHALT_DARK} />
-          <BigArrow x={VIEW_W * 0.35} y={VIEW_H - 38} dir="right" size="28" />
-          <BigArrow x={VIEW_W * 0.65} y={VIEW_H - 38} dir="right" size="28" />
+          <BigArrow x={VIEW_W * 0.35} y={VIEW_H - 92} dir="right" size="28" />
+          <BigArrow x={VIEW_W * 0.65} y={VIEW_H - 92} dir="right" size="28" />
         </svg>
       </div>
     </div>
