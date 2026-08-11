@@ -61,16 +61,20 @@ function buildLayout() {
   columnLots([35,36,37,38,39,40,41,42], COL_X.E, GRID_TOP).forEach((p) => (positions[p.n] = { x: p.x, y: p.y, w: BOX_W, h: BOX_H }));
   columnLots([43,44,45,46,47,48,49,50,51,52], COL_X.F, GRID_TOP).forEach((p) => (positions[p.n] = { x: p.x, y: p.y, w: BOX_W, h: BOX_H }));
 
-  // baris atas: signage + lot 61 + blok 60-57 + blok 56-53 + pondok (satu baris, kotak seragam)
+  // baris atas: lot 61 + pasangan (60,59)(58,57)(56,55)(54,53) + pondok
+  // (susunan berpasangan mengikut lakaran - jurang besar antara setiap pasangan)
   const TOP_Y = 96;
   const { positions: topPos } = sequenceRow(
     [
-      { type: "sign" },
       { type: "lot", n: 61 },
       { type: "gap", size: 26 },
-      { type: "lot", n: 60 }, { type: "lot", n: 59 }, { type: "lot", n: 58 }, { type: "lot", n: 57 },
+      { type: "lot", n: 60 }, { type: "lot", n: 59 },
       { type: "gap", size: 26 },
-      { type: "lot", n: 56 }, { type: "lot", n: 55 }, { type: "lot", n: 54 }, { type: "lot", n: 53 },
+      { type: "lot", n: 58 }, { type: "lot", n: 57 },
+      { type: "gap", size: 26 },
+      { type: "lot", n: 56 }, { type: "lot", n: 55 },
+      { type: "gap", size: 26 },
+      { type: "lot", n: 54 }, { type: "lot", n: 53 },
       { type: "gap", size: 26 },
       { type: "pondok" },
     ],
@@ -86,9 +90,7 @@ function buildLayout() {
 }
 
 const { positions: LAYOUT, meta: LAYOUT_META } = buildLayout();
-const signMeta = LAYOUT_META.topRow.find((p) => p.type === "sign");
 const pondokMeta = LAYOUT_META.topRow.find((p) => p.type === "pondok");
-const lastColF = { x: COL_X.F, rows: 10 };
 const VIEW_W = Math.max(pondokMeta.x + pondokMeta.w, COL_X.F + BOX_W) + 60;
 const VIEW_H = GRID_TOP + 10 * ROW_PITCH + 70;
 
@@ -151,8 +153,8 @@ function SignBoard({ x, y, w, h }) {
   return (
     <g transform={`translate(${x},${y})`}>
       <rect width={w} height={h} rx="6" fill="#f8fafc" stroke="#cbd5e1" strokeWidth="1.4" />
-      <text x={w / 2} y={h / 2 - 6} textAnchor="middle" fontSize="12.5" fontWeight="800" fill="#1e293b" letterSpacing="0.3">KELUAR</text>
-      <text x={w / 2} y={h / 2 + 12} textAnchor="middle" fontSize="10" fontWeight="700" fill="#475569" letterSpacing="0.3">JLN UTAMA</text>
+      <text x={w / 2} y={h / 2 - 6} textAnchor="middle" fontSize="12.5" fontWeight="800" fill="#1e293b" letterSpacing="0.3">KELUAR MASUK</text>
+      <text x={w / 2} y={h / 2 + 12} textAnchor="middle" fontSize="11" fontWeight="700" fill="#475569" letterSpacing="0.3">UTAMA</text>
     </g>
   );
 }
@@ -202,14 +204,14 @@ export default function FloorPlan({ lots, zones, onSelectLot }) {
 
       <div className="overflow-x-auto rounded-lg" style={{ border: "4px solid #14532d" }}>
         <svg viewBox={`0 0 ${VIEW_W} ${VIEW_H}`} className="w-full min-w-[1180px] block" style={{ background: ASPHALT }}>
-          {/* jalur atas: anak panah arah */}
+          {/* jalur atas: papan tanda "Keluar Masuk Utama" (kedudukan baharu) + anak panah arah */}
           <rect x="0" y="0" width={VIEW_W} height="76" fill={ASPHALT_DARK} />
-          <BigArrow x={VIEW_W * 0.3} y="38" dir="left" size="30" />
-          <BigArrow x={VIEW_W * 0.55} y="38" dir="left" size="30" />
-          <BigArrow x={VIEW_W * 0.8} y="38" dir="left" size="26" />
+          <SignBoard x={COL_X.A} y="10" w="184" h="56" />
+          <BigArrow x={VIEW_W * 0.38} y="38" dir="left" size="30" />
+          <BigArrow x={VIEW_W * 0.6} y="38" dir="left" size="30" />
+          <BigArrow x={VIEW_W * 0.82} y="38" dir="left" size="26" />
 
-          {/* baris signage + lot 61 + blok atas + pondok */}
-          <SignBoard x={signMeta.x} y={signMeta.y} w={signMeta.w} h={signMeta.h} />
+          {/* baris lot 61 + pasangan atas + pondok */}
           <GuardHouse x={pondokMeta.x} y={pondokMeta.y} w={pondokMeta.w} h={pondokMeta.h} />
 
           {/* lorong dua-hala menegak */}
