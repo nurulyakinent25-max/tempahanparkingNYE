@@ -16,6 +16,11 @@ const BOX_H = 62;
 const GAP = 8;
 const ROW_PITCH = BOX_H + GAP;
 
+// Lot 53-61 (baris atas) dipaparkan potret (tegak, sempit) - bukan landskap
+// macam lot lain, sepadan bentuk sebenar petak parkir tegak lurus.
+const TOP_BOX_W = 64;
+const TOP_BOX_H = 116;
+
 const ZONE_ACCENT = {
   A: "#60a5fa", // biru - Pakej Semester
   B: "#2dd4bf", // teal - Pakej 3 Bulan
@@ -34,7 +39,7 @@ function columnLots(lotNumbers, x, topY) {
 }
 
 /* ---------- helper: susun baris mendatar (lebar seragam) ---------- */
-function sequenceRow(items, startX, y) {
+function sequenceRow(items, startX, y, boxW = BOX_W, boxH = BOX_H) {
   const positions = [];
   let x = startX;
   for (const item of items) {
@@ -42,14 +47,14 @@ function sequenceRow(items, startX, y) {
       x += item.size;
       continue;
     }
-    positions.push({ ...item, x, y, w: BOX_W, h: BOX_H });
-    x += BOX_W + GAP;
+    positions.push({ ...item, x, y, w: boxW, h: boxH });
+    x += boxW + GAP;
   }
   return { positions, endX: x };
 }
 
 const COL_X = { A: 60, B: 320, C: 320 + BOX_W + GAP, D: 700, E: 700 + BOX_W + GAP, F: 1080 };
-const GRID_TOP = 236;
+const GRID_TOP = 296;
 
 function buildLayout() {
   const positions = {};
@@ -62,28 +67,31 @@ function buildLayout() {
   columnLots([43,44,45,46,47,48,49,50,51,52], COL_X.F, GRID_TOP).forEach((p) => (positions[p.n] = { x: p.x, y: p.y, w: BOX_W, h: BOX_H }));
 
   // baris atas: lot 61 + pasangan (60,59)(58,57)(56,55)(54,53) + pondok
-  // (susunan berpasangan mengikut lakaran - jurang besar antara setiap pasangan)
-  const TOP_Y = 96;
+  // (susunan berpasangan mengikut lakaran, kotak POTRET/tegak - bukan landskap)
+  const TOP_Y = 76;
   const { positions: topPos } = sequenceRow(
     [
       { type: "lot", n: 61 },
-      { type: "gap", size: 26 },
+      { type: "gap", size: 22 },
       { type: "lot", n: 60 }, { type: "lot", n: 59 },
-      { type: "gap", size: 26 },
+      { type: "gap", size: 22 },
       { type: "lot", n: 58 }, { type: "lot", n: 57 },
-      { type: "gap", size: 26 },
+      { type: "gap", size: 22 },
       { type: "lot", n: 56 }, { type: "lot", n: 55 },
-      { type: "gap", size: 26 },
+      { type: "gap", size: 22 },
       { type: "lot", n: 54 }, { type: "lot", n: 53 },
-      { type: "gap", size: 26 },
+      { type: "gap", size: 22 },
       { type: "pondok" },
     ],
     COL_X.A,
-    TOP_Y
+    TOP_Y,
+    TOP_BOX_W,
+    TOP_BOX_H
   );
   const meta = { topRow: topPos, topY: TOP_Y };
   topPos.forEach((p) => {
     if (p.type === "lot") positions[p.n] = { x: p.x, y: p.y, w: p.w, h: p.h };
+    if (p.type === "pondok") p.w = 130; // pondok lebih lebar drpd lot supaya teks muat
   });
 
   return { positions, meta };
@@ -126,6 +134,7 @@ function LotBox({ n, pos, zoneCode, status, plateNumber, endDate, onClick }) {
   const fill = isAvailable ? LOT_AVAILABLE_FILL : isPending ? LOT_PENDING_FILL : LOT_OCCUPIED_FILL;
   const stroke = isAvailable ? ZONE_ACCENT[zoneCode] || "#94a3b8" : isPending ? "#fbbf24" : "#475569";
   const textColor = isAvailable ? "#f8fafc" : isPending ? "#fde68a" : "#cbd5e1";
+  const narrow = pos.w < 90; // kotak potret (baris atas) lebih sempit - kecilkan fon sikit
 
   return (
     <g
@@ -138,9 +147,10 @@ function LotBox({ n, pos, zoneCode, status, plateNumber, endDate, onClick }) {
 
       {isOccupied ? (
         <>
-          <text x={pos.w / 2} y="20" textAnchor="middle" fontSize="14" fontWeight="800" fontFamily="ui-monospace, monospace" fill={textColor}>{n}</text>
-          <text x={pos.w / 2} y="38" textAnchor="middle" fontSize="12.5" fontWeight="700" fontFamily="ui-monospace, monospace" fill="#f8fafc" letterSpacing="0.5">{plateNumber || "-"}</text>
-          <text x={pos.w / 2} y="53" textAnchor="middle" fontSize="9.5" fontWeight="500" fill="#94a3b8">hingga {formatShortDate(endDate)}</text>
+          <text x={pos.w / 2} y={pos.h * 0.24} textAnchor="middle" fontSize={narrow ? "13" : "14"} fontWeight="800" fontFamily="ui-monospace, monospace" fill={textColor}>{n}</text>
+          <text x={pos.w / 2} y={pos.h * 0.5} textAnchor="middle" fontSize={narrow ? "10.5" : "12.5"} fontWeight="700" fontFamily="ui-monospace, monospace" fill="#f8fafc" letterSpacing="0.3">{plateNumber || "-"}</text>
+          <text x={pos.w / 2} y={pos.h * 0.72} textAnchor="middle" fontSize={narrow ? "8.5" : "9.5"} fontWeight="500" fill="#94a3b8">hingga</text>
+          <text x={pos.w / 2} y={pos.h * 0.86} textAnchor="middle" fontSize={narrow ? "8.5" : "9.5"} fontWeight="500" fill="#94a3b8">{formatShortDate(endDate)}</text>
         </>
       ) : (
         <text x={pos.w / 2} y={pos.h / 2 + 6} textAnchor="middle" fontSize="19" fontWeight="700" fontFamily="ui-monospace, monospace" fill={textColor}>{n}</text>
