@@ -175,7 +175,7 @@ export default function FloorPlan({ lots, zones, onSelectLot }) {
       <div className="flex items-center justify-between px-1 pb-2">
         <div>
           <p className="text-xs font-bold text-slate-200 tracking-wide">PETA TAPAK</p>
-          <p className="text-[11px] text-slate-400">Ketik lot berwarna untuk tempah &middot; leret/zum untuk lihat penuh</p>
+          <p className="text-[11px] text-slate-400">Ketik lot berwarna untuk tempah &middot; Leret ke kiri atau kanan untuk lihat keseluruhan</p>
         </div>
         <div className="flex gap-3">
           {zones.map((z) => <ZoneChip key={z.code} code={z.code} label={z.tagline} />)}
@@ -184,12 +184,12 @@ export default function FloorPlan({ lots, zones, onSelectLot }) {
 
       <div className="overflow-x-auto rounded-lg" style={{ border: "4px solid #14532d" }}>
         <svg viewBox={`0 0 ${VIEW_W} ${VIEW_H}`} className="w-full min-w-[980px] block" style={{ background: ASPHALT }}>
-          {/* jalur atas: papan tanda pintu keluar (KIRI) + anak panah arah */}
+          {/* jalur atas: papan tanda pintu keluar (sekecil kotak lot) + anak panah arah */}
           <rect x="0" y="0" width={VIEW_W} height="76" fill={ASPHALT_DARK} />
-          <SignBoard x={COL_X.A} y="10" w="210" h="56" lines={["PINTU KELUAR", "KE JALAN UTAMA"]} fontSize="13" />
-          <BigArrow x={520} y="38" dir="left" size="30" />
-          <BigArrow x={860} y="38" dir="left" size="30" />
-          <BigArrow x={1080} y="38" dir="left" size="26" />
+          <SignBoard x={COL_X.A} y="16" w={BOX_W} h={TOP_H} lines={["KELUAR", "JLN UTAMA"]} fontSize="8.5" />
+          <BigArrow x={300} y="38" dir="left" size="30" />
+          <BigArrow x={650} y="38" dir="left" size="30" />
+          <BigArrow x={980} y="38" dir="left" size="26" />
 
           {/* pondok pengawal (baris atas, kanan sekali) */}
           <GuardHouse x={COL_X.F - 20} y={86} />
@@ -229,8 +229,6 @@ export default function FloorPlan({ lots, zones, onSelectLot }) {
           <rect x="0" y={VIEW_H - 66} width={VIEW_W} height="66" fill={ASPHALT_DARK} />
           <BigArrow x={420} y={VIEW_H - 38} dir="right" size="28" />
           <BigArrow x={820} y={VIEW_H - 38} dir="right" size="28" />
-          <text x={VIEW_W / 2 - 220} y={VIEW_H - 16} fontSize="11.5" fill="#94a3b8" textAnchor="middle" letterSpacing="0.5">PTD 47163 (BAPAK)</text>
-          <text x={VIEW_W / 2 + 230} y={VIEW_H - 16} fontSize="11.5" fill="#94a3b8" textAnchor="middle" letterSpacing="0.5">PTD 47164 (FATTAH)</text>
         </svg>
       </div>
     </div>

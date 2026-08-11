@@ -672,9 +672,9 @@ export default function Home() {
   const totalAvailable = boot.lots.filter((l) => l.status === "available").length;
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-10">
+    <div className="min-h-screen bg-gradient-to-b from-slate-100 via-slate-50 to-slate-200 pb-10">
       <header className="bg-slate-900 text-white px-4 py-4 sticky top-0 z-30">
-        <div className="max-w-3xl mx-auto flex items-center justify-between">
+        <div className="max-w-6xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Car size={22} className="text-blue-400" />
             <div><h1 className="font-bold text-sm leading-tight">Nurul Yaqeen Enterprise</h1><p className="text-[11px] text-slate-400 leading-tight">Tempahan Tapak Parkir · Parit Raja</p></div>
@@ -686,16 +686,16 @@ export default function Home() {
         </div>
       </header>
 
-      <div className="max-w-3xl mx-auto px-4 pt-4">
-        <div className="bg-white rounded-xl border border-slate-200 p-4 mb-4 flex items-center justify-between">
+      <div className="max-w-6xl mx-auto px-4 pt-4">
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 mb-4 flex items-center justify-between">
           <div><p className="text-xs text-slate-400">Lot kosong sekarang</p><p className="text-2xl font-bold text-slate-800">{totalAvailable} <span className="text-sm font-normal text-slate-400">/ {boot.lots.length}</span></p></div>
           <MapPin className="text-blue-500" size={28} />
         </div>
 
         <div className="grid grid-cols-3 gap-2 mb-4 text-center text-xs">
-          <div className="bg-white rounded-lg border p-2"><span className="inline-block w-3 h-3 rounded-full bg-green-400 mb-1"></span><p className="text-slate-500">Kosong</p></div>
-          <div className="bg-white rounded-lg border p-2"><span className="inline-block w-3 h-3 rounded-full bg-amber-300 mb-1"></span><p className="text-slate-500">Menunggu</p></div>
-          <div className="bg-white rounded-lg border p-2"><span className="inline-block w-3 h-3 rounded-full bg-slate-400 mb-1"></span><p className="text-slate-500">Disewa</p></div>
+          <div className="bg-white rounded-lg border border-slate-200 shadow-sm p-2"><span className="inline-block w-3 h-3 rounded-full bg-green-400 mb-1"></span><p className="text-slate-500">Kosong</p></div>
+          <div className="bg-white rounded-lg border border-slate-200 shadow-sm p-2"><span className="inline-block w-3 h-3 rounded-full bg-amber-300 mb-1"></span><p className="text-slate-500">Menunggu</p></div>
+          <div className="bg-white rounded-lg border border-slate-200 shadow-sm p-2"><span className="inline-block w-3 h-3 rounded-full bg-slate-400 mb-1"></span><p className="text-slate-500">Disewa</p></div>
         </div>
 
         <FloorPlan lots={boot.lots} zones={boot.zones} onSelectLot={setSelectedLot} />
