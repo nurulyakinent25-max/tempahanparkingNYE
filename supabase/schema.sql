@@ -25,7 +25,7 @@ insert into zones (code, name, tagline) values
 on conflict (code) do nothing;
 
 -- ------------------------------------------------------------
--- 2. LOTS  (62 lot tapak parkir - ini "product" dalam sistem ini)
+-- 2. LOTS  (61 lot tapak parkir - ini "product" dalam sistem ini)
 -- ------------------------------------------------------------
 create table if not exists lots (
   lot_number int primary key,
@@ -35,20 +35,22 @@ create table if not exists lots (
   current_booking_id uuid
 );
 
--- Jana 62 lot & tetapkan zon secara automatik ikut spesifikasi:
---   Zon A (Semester): 1-18, 59-62
+-- Jana 61 lot & tetapkan zon secara automatik ikut pelan tapak muktamad
+-- (lot 62 tidak wujud - ruang itu digunakan untuk papan tanda
+-- "Pintu Keluar ke Jalan Utama"):
+--   Zon A (Semester): 1-18, 59-61
 --   Zon B (3 Bulan):  19-34, 55-58
 --   Zon C (Bulanan/Harian): 35-54
 insert into lots (lot_number, zone_code)
 select n,
   case
     when n between 1 and 18 then 'A'
-    when n between 59 and 62 then 'A'
+    when n between 59 and 61 then 'A'
     when n between 19 and 34 then 'B'
     when n between 55 and 58 then 'B'
     when n between 35 and 54 then 'C'
   end
-from generate_series(1, 62) as n
+from generate_series(1, 61) as n
 on conflict (lot_number) do nothing;
 
 -- ------------------------------------------------------------

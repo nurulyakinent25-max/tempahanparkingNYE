@@ -1,0 +1,17 @@
+{
+  "/_app": "pages/_app.js",
+  "/_error": "pages/_error.js",
+  "/api/admin/bookings": "pages/api/admin/bookings.js",
+  "/api/admin/bookings/[id]": "pages/api/admin/bookings/[id].js",
+  "/api/admin/settings": "pages/api/admin/settings.js",
+  "/api/bookings/create": "pages/api/bookings/create.js",
+  "/api/bookings/lookup": "pages/api/bookings/lookup.js",
+  "/api/create-checkout-session": "pages/api/create-checkout-session.js",
+  "/api/lots": "pages/api/lots.js",
+  "/booking/cancel": "pages/booking/cancel.js",
+  "/booking/success": "pages/booking/success.js",
+  "/": "pages/index.js",
+  "/api/upload": "pages/api/upload.js",
+  "/api/stripe-webhook": "pages/api/stripe-webhook.js",
+  "/_document": "pages/_document.js"
+}

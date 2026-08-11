@@ -64,7 +64,7 @@ parking-backend/
     ├── booking/success.js        <- Halaman selepas bayaran Stripe berjaya
     ├── booking/cancel.js         <- Halaman jika bayaran dibatalkan
     └── api/
-        ├── lots.js               <- GET status 62 lot + harga pakej + tetapan (public)
+        ├── lots.js               <- GET status 61 lot + harga pakej + tetapan (public)
         ├── upload.js             <- POST gambar bukti bayar / tandatangan
         ├── create-checkout-session.js  <- Soalan #8: cipta sesi Stripe Checkout
         ├── stripe-webhook.js            <- Soalan #8: dengar pembayaran berjaya
@@ -89,7 +89,7 @@ npm run dev
 ```
 
 Buka `http://localhost:3000` — ini terus memaparkan laman tempahan penuh
-(peta 62 lot, tempahan, admin dashboard di ikon mangga). Kata laluan admin
+(peta 61 lot, tempahan, admin dashboard di ikon mangga). Kata laluan admin
 lalai ialah nilai `ADMIN_API_SECRET` yang anda tetapkan dalam `.env.local`.
 
 ---
@@ -154,4 +154,3 @@ lalai ialah nilai `ADMIN_API_SECRET` yang anda tetapkan dalam `.env.local`.
   bawah PDPA Malaysia. RLS sudah disekat sepenuhnya (tiada akses public
   langsung); pastikan `ADMIN_API_SECRET` dan semua kunci di atas kekal
   rahsia.
-
