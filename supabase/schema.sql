@@ -269,3 +269,24 @@ create policy "Pengguna boleh kemaskini profil sendiri" on profiles
 -- Sengaja TIADA policy public untuk 'bookings'.
 -- Ini bermakna anon key TIDAK boleh baca/tulis bookings terus.
 -- Guna service_role key di server (lihat lib/supabaseAdmin.js).
+
+-- ------------------------------------------------------------
+-- 7. FUNGSI: expire_old_bookings
+--    Lot yang tempoh sewaannya (end_date) sudah lepas akan
+--    automatik kembali 'available' untuk ditempah semula.
+--    Dipanggil setiap kali /api/lots dimuatkan.
+-- ------------------------------------------------------------
+create or replace function expire_old_bookings()
+returns void
+language plpgsql
+set search_path = public, pg_temp
+as $$
+begin
+  update lots
+  set status = 'available', current_booking_id = null
+  where status = 'occupied'
+    and current_booking_id in (
+      select id from bookings where end_date < current_date
+    );
+end;
+$$;
