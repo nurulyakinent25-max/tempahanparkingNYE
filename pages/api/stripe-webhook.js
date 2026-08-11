@@ -1,5 +1,6 @@
 import { stripe } from "../../lib/stripe";
 import { supabaseAdmin } from "../../lib/supabaseAdmin";
+import { notifyAdmin } from "../../lib/notify";
 
 // Stripe perlu RAW body (belum di-parse) untuk sahkan tandatangan webhook,
 // jadi bodyParser Next.js kena dimatikan untuk route ini sahaja.
@@ -46,6 +47,30 @@ export default async function handler(req, res) {
             payment_ref: session.payment_intent || session.id,
           })
           .eq("id", bookingId);
+
+        // Bayaran online telah disahkan Stripe - beritahu admin serta-merta.
+        const { data: booking } = await supabaseAdmin
+          .from("bookings")
+          .select("*, packages(label)")
+          .eq("id", bookingId)
+          .single();
+        if (booking) {
+          try {
+            await notifyAdmin({
+              lot_number: booking.lot_number,
+              renter_name: booking.renter_name,
+              plate_number: booking.plate_number,
+              package_label: booking.packages?.label,
+              package_id: booking.package_id,
+              total_price: booking.total_price,
+              payment_method: booking.payment_method,
+              start_date: booking.start_date,
+              end_date: booking.end_date,
+            });
+          } catch (e) {
+            console.error("notifyAdmin error:", e);
+          }
+        }
       }
     }
 

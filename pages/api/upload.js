@@ -1,4 +1,5 @@
 import { supabaseAdmin } from "../../lib/supabaseAdmin";
+import { notifyAdmin } from "../../lib/notify";
 
 // Imej (bukti pembayaran / tandatangan) dihantar sebagai base64 dataURL.
 // Naikkan had saiz body sebab imej boleh lebih besar daripada 1MB default Next.js.
@@ -39,6 +40,34 @@ export default async function handler(req, res) {
       .eq("id", bookingId);
 
     if (updateError) throw updateError;
+
+    // Selepas bukti pembayaran (pindahan bank) berjaya dimuat naik,
+    // ini penanda tempahan lengkap sepenuhnya - beritahu admin serta-merta.
+    if (type === "proof") {
+      const { data: booking } = await supabaseAdmin
+        .from("bookings")
+        .select("*, packages(label)")
+        .eq("id", bookingId)
+        .single();
+      if (booking) {
+        try {
+          await notifyAdmin({
+            lot_number: booking.lot_number,
+            renter_name: booking.renter_name,
+            plate_number: booking.plate_number,
+            package_label: booking.packages?.label,
+            package_id: booking.package_id,
+            total_price: booking.total_price,
+            payment_method: booking.payment_method,
+            start_date: booking.start_date,
+            end_date: booking.end_date,
+            proofImageDataUrl: dataUrl,
+          });
+        } catch (e) {
+          console.error("notifyAdmin error:", e);
+        }
+      }
+    }
 
     return res.status(200).json({ path });
   } catch (err) {
