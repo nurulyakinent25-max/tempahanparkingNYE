@@ -31,25 +31,35 @@ export default async function handler(req, res) {
     ]);
     if (e1 || e2 || e3 || e4) throw e1 || e2 || e3 || e4;
 
-    // Ambil no. plat & tarikh tamat untuk lot yang sedang disewa sahaja.
+    // Ambil no. plat & tarikh tamat untuk lot yang sedang disewa/menunggu.
     const bookingIds = lots.filter((l) => l.current_booking_id).map((l) => l.current_booking_id);
     let bookingInfo = {};
     if (bookingIds.length > 0) {
       const { data: bks } = await supabaseAdmin
         .from("bookings")
-        .select("id, plate_number, end_date")
+        .select("id, plate_number, end_date, package_id, qty, confirmed_at")
         .in("id", bookingIds);
       (bks || []).forEach((b) => (bookingInfo[b.id] = b));
     }
 
     const lotsWithInfo = lots.map((l) => {
       const info = l.current_booking_id ? bookingInfo[l.current_booking_id] : null;
+      // Untuk Pakej Harian, kira masa tamat TEPAT (24 jam x hari dari masa
+      // disahkan admin) supaya paparan & auto-clear konsisten.
+      let untilDisplay = info?.end_date || null;
+      if (info && info.package_id === "harian" && info.confirmed_at) {
+        const exact = new Date(info.confirmed_at);
+        exact.setHours(exact.getHours() + info.qty * 24);
+        untilDisplay = exact.toISOString();
+      }
       return {
         lot_number: l.lot_number,
         zone_code: l.zone_code,
         status: l.status,
         plate_number: info?.plate_number || null,
         end_date: info?.end_date || null,
+        until_display: untilDisplay,
+        is_daily: info?.package_id === "harian",
       };
     });
 

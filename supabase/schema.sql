@@ -142,6 +142,7 @@ create table if not exists bookings (
   proof_image_url text,
   stripe_session_id text,
   paid_at timestamptz,
+  confirmed_at timestamptz, -- masa tepat admin sahkan (untuk auto-clear Pakej Harian tepat 24 jam)
 
   -- Kontrak & tandatangan
   signature_url text,
@@ -285,7 +286,7 @@ begin
     lot_number, package_id, renter_name, ic_number, phone, address,
     vehicle_type, vehicle_brand, vehicle_color, plate_number,
     qty, start_date, end_date, total_price, payment_method, contract_text,
-    payment_status, status, admin_note
+    payment_status, status, admin_note, confirmed_at
   ) values (
     v_lot_number,
     payload->>'package_id',
@@ -305,7 +306,8 @@ begin
     payload->>'contract_text',
     'paid',
     'disahkan',
-    'Didaftarkan terus oleh admin (pelanggan walk-in/telefon)'
+    'Didaftarkan terus oleh admin (pelanggan walk-in/telefon)',
+    now()
   )
   returning * into v_new_booking;
 
@@ -368,7 +370,16 @@ begin
   set status = 'available', current_booking_id = null
   where status = 'occupied'
     and current_booking_id in (
-      select id from bookings where end_date < current_date
+      select b.id from bookings b
+      where (
+        -- Pakej Harian: tamat TEPAT 24 jam x bilangan hari dari masa admin
+        -- sahkan tempahan (bukan sekadar tukar hari kalendar).
+        (b.package_id = 'harian' and b.confirmed_at is not null
+          and b.confirmed_at + (b.qty * interval '24 hours') < now())
+        or
+        -- Pakej lain (bulanan/3 bulan/semester): cukup berdasarkan tarikh sahaja.
+        (b.package_id <> 'harian' and b.end_date < current_date)
+      )
     );
 end;
 $$;

@@ -132,7 +132,15 @@ function formatShortDate(dateStr) {
   return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}`;
 }
 
-function LotBox({ n, pos, zoneCode, status, plateNumber, endDate, onClick }) {
+function formatShortDateTime(dateStr) {
+  if (!dateStr) return "";
+  const d = new Date(dateStr);
+  const date = `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}`;
+  const time = `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+  return `${date} ${time}`;
+}
+
+function LotBox({ n, pos, zoneCode, status, plateNumber, endDate, isDaily, onClick }) {
   const isAvailable = status === "available";
   const isPending = status === "pending";
   const isOccupied = status === "occupied";
@@ -140,6 +148,7 @@ function LotBox({ n, pos, zoneCode, status, plateNumber, endDate, onClick }) {
   const stroke = isAvailable ? ZONE_ACCENT[zoneCode] || "#94a3b8" : isPending ? "#fbbf24" : "#475569";
   const textColor = isAvailable ? "#f8fafc" : isPending ? "#fde68a" : "#cbd5e1";
   const narrow = pos.w < 90; // kotak potret (baris atas) lebih sempit - kecilkan fon sikit
+  const untilText = isDaily ? formatShortDateTime(endDate) : formatShortDate(endDate);
 
   return (
     <g
@@ -155,7 +164,7 @@ function LotBox({ n, pos, zoneCode, status, plateNumber, endDate, onClick }) {
           <text x={pos.w / 2} y={pos.h * 0.24} textAnchor="middle" fontSize={narrow ? "13" : "14"} fontWeight="800" fontFamily="ui-monospace, monospace" fill={textColor}>{n}</text>
           <text x={pos.w / 2} y={pos.h * 0.5} textAnchor="middle" fontSize={narrow ? "10.5" : "12.5"} fontWeight="700" fontFamily="ui-monospace, monospace" fill="#f8fafc" letterSpacing="0.3">{plateNumber || "-"}</text>
           <text x={pos.w / 2} y={pos.h * 0.72} textAnchor="middle" fontSize={narrow ? "8.5" : "9.5"} fontWeight="500" fill={isPending ? "#fde68a" : "#94a3b8"}>{isPending ? "menunggu" : "hingga"}</text>
-          {!isPending && <text x={pos.w / 2} y={pos.h * 0.86} textAnchor="middle" fontSize={narrow ? "8.5" : "9.5"} fontWeight="500" fill="#94a3b8">{formatShortDate(endDate)}</text>}
+          {!isPending && <text x={pos.w / 2} y={pos.h * 0.86} textAnchor="middle" fontSize={narrow ? "8" : "9"} fontWeight="500" fill="#94a3b8">{untilText}</text>}
         </>
       ) : (
         <text x={pos.w / 2} y={pos.h / 2 + 6} textAnchor="middle" fontSize="19" fontWeight="700" fontFamily="ui-monospace, monospace" fill={textColor}>{n}</text>
@@ -271,7 +280,8 @@ export default function FloorPlan({ lots, zones, onSelectLot }) {
                 zoneCode={data.zone_code}
                 status={data.status}
                 plateNumber={data.plate_number}
-                endDate={data.end_date}
+                endDate={data.until_display || data.end_date}
+                isDaily={data.is_daily}
                 onClick={onSelectLot}
               />
             );

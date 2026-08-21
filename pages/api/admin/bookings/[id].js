@@ -44,7 +44,11 @@ export default async function handler(req, res) {
 
       const { data: booking, error: e1 } = await supabaseAdmin
         .from("bookings")
-        .update({ status: decision, admin_note: adminNote || null })
+        .update({
+          status: decision,
+          admin_note: adminNote || null,
+          ...(decision === "disahkan" ? { confirmed_at: new Date().toISOString() } : {}),
+        })
         .eq("id", id)
         .select()
         .single();
