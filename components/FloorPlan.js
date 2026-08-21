@@ -121,7 +121,7 @@ function ZoneChip({ code, label }) {
   return (
     <span className="flex items-center gap-1.5">
       <span className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: ZONE_ACCENT[code] }} />
-      <span className="text-[10px] text-slate-300 font-medium">{label}</span>
+      <span className="text-xs text-slate-300 font-medium">{label}</span>
     </span>
   );
 }
@@ -177,8 +177,8 @@ function SignBoard({ x, y, w, h }) {
   return (
     <g transform={`translate(${x},${y})`}>
       <rect width={w} height={h} rx="6" fill="#f8fafc" stroke="#cbd5e1" strokeWidth="1.4" />
-      <text x={w / 2} y={h / 2 - 6} textAnchor="middle" fontSize="12.5" fontWeight="800" fill="#1e293b" letterSpacing="0.3">KELUAR MASUK</text>
-      <text x={w / 2} y={h / 2 + 12} textAnchor="middle" fontSize="11" fontWeight="700" fill="#475569" letterSpacing="0.3">UTAMA</text>
+      <text x={w / 2} y={h / 2 - 6} textAnchor="middle" fontSize="12" fontWeight="800" fill="#1e293b" letterSpacing="0.3">KELUAR MASUK</text>
+      <text x={w / 2} y={h / 2 + 12} textAnchor="middle" fontSize="12" fontWeight="700" fill="#475569" letterSpacing="0.3">UTAMA</text>
     </g>
   );
 }
@@ -219,7 +219,7 @@ export default function FloorPlan({ lots, zones, onSelectLot }) {
       <div className="flex items-center justify-between px-1 pb-2">
         <div>
           <p className="text-xs font-bold text-slate-200 tracking-wide">PETA TAPAK</p>
-          <p className="text-[11px] text-slate-400">Ketik lot berwarna untuk tempah &middot; Leret ke kiri atau kanan untuk lihat keseluruhan</p>
+          <p className="text-xs text-slate-400">Ketik lot berwarna untuk tempah &middot; Leret ke kiri atau kanan untuk lihat keseluruhan</p>
         </div>
         <div className="flex gap-3">
           {zones.map((z) => <ZoneChip key={z.code} code={z.code} label={z.tagline} />)}
@@ -248,7 +248,7 @@ export default function FloorPlan({ lots, zones, onSelectLot }) {
               <rect x={lane.x} y={GRID_TOP - 8} width={lane.w} height={10 * ROW_PITCH} fill={ASPHALT} />
               <line x1={lane.mid} y1={GRID_TOP - 8} x2={lane.mid} y2={GRID_TOP + 10 * ROW_PITCH - 20} stroke="#94a3b8" strokeWidth="1.5" strokeDasharray="8 8" opacity="0.5" />
               <BoomGate x={lane.mid} y={GRID_TOP - 34} />
-              <text x={lane.mid} y={GRID_TOP - 14} textAnchor="middle" fontSize="13" fontWeight="800" fill="#e2e8f0" letterSpacing="1">{lane.label}</text>
+              <text x={lane.mid} y={GRID_TOP - 14} textAnchor="middle" fontSize="12" fontWeight="800" fill="#e2e8f0" letterSpacing="1">{lane.label}</text>
               <BigArrow x={lane.mid - (lane.w > 100 ? 22 : 0)} y={GRID_TOP + 150} dir="up" size="24" />
               <BigArrow x={lane.mid + (lane.w > 100 ? 22 : 0)} y={GRID_TOP + 150} dir="down" size="24" />
               <BigArrow x={lane.mid - (lane.w > 100 ? 22 : 0)} y={GRID_TOP + 420} dir="up" size="24" />
@@ -262,7 +262,7 @@ export default function FloorPlan({ lots, zones, onSelectLot }) {
           {/* label jalan utama di kiri - teks tebal putih atas latar hitam */}
           <g transform={`rotate(-90 24 ${GRID_TOP + 250})`}>
             <rect x={24 - 130} y={GRID_TOP + 250 - 12} width="260" height="24" rx="4" fill="#000000" />
-            <text x="24" y={GRID_TOP + 250 + 5} textAnchor="middle" fontSize="13" fontWeight="800" fill="#ffffff" letterSpacing="1.5">
+            <text x="24" y={GRID_TOP + 250 + 5} textAnchor="middle" fontSize="12" fontWeight="800" fill="#ffffff" letterSpacing="1.5">
               JALAN PANGSAPURI DESA SISWA
             </text>
           </g>
