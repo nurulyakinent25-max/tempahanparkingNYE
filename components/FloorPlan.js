@@ -150,12 +150,12 @@ function LotBox({ n, pos, zoneCode, status, plateNumber, endDate, onClick }) {
     >
       <rect width={pos.w} height={pos.h} rx="6" fill={fill} stroke={stroke} strokeWidth={isAvailable ? 2.5 : 1.6} />
 
-      {isOccupied ? (
+      {(isOccupied || isPending) ? (
         <>
           <text x={pos.w / 2} y={pos.h * 0.24} textAnchor="middle" fontSize={narrow ? "13" : "14"} fontWeight="800" fontFamily="ui-monospace, monospace" fill={textColor}>{n}</text>
           <text x={pos.w / 2} y={pos.h * 0.5} textAnchor="middle" fontSize={narrow ? "10.5" : "12.5"} fontWeight="700" fontFamily="ui-monospace, monospace" fill="#f8fafc" letterSpacing="0.3">{plateNumber || "-"}</text>
-          <text x={pos.w / 2} y={pos.h * 0.72} textAnchor="middle" fontSize={narrow ? "8.5" : "9.5"} fontWeight="500" fill="#94a3b8">hingga</text>
-          <text x={pos.w / 2} y={pos.h * 0.86} textAnchor="middle" fontSize={narrow ? "8.5" : "9.5"} fontWeight="500" fill="#94a3b8">{formatShortDate(endDate)}</text>
+          <text x={pos.w / 2} y={pos.h * 0.72} textAnchor="middle" fontSize={narrow ? "8.5" : "9.5"} fontWeight="500" fill={isPending ? "#fde68a" : "#94a3b8"}>{isPending ? "menunggu" : "hingga"}</text>
+          {!isPending && <text x={pos.w / 2} y={pos.h * 0.86} textAnchor="middle" fontSize={narrow ? "8.5" : "9.5"} fontWeight="500" fill="#94a3b8">{formatShortDate(endDate)}</text>}
         </>
       ) : (
         <text x={pos.w / 2} y={pos.h / 2 + 6} textAnchor="middle" fontSize="19" fontWeight="700" fontFamily="ui-monospace, monospace" fill={textColor}>{n}</text>
