@@ -451,7 +451,7 @@ function LookupBooking({ onClose }) {
 /* ============================================================
    AdminDashboard
    ============================================================ */
-function AdminDashboard({ adminSecret, zones, onClose, onChanged }) {
+function AdminDashboard({ adminSecret, zones, onClose, onLogout, onChanged }) {
   const [tab, setTab] = useState("pending");
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -459,6 +459,13 @@ function AdminDashboard({ adminSecret, zones, onClose, onChanged }) {
   const [settingsData, setSettingsData] = useState(null);
   const [savingCfg, setSavingCfg] = useState(false);
   const [overviewLots, setOverviewLots] = useState([]);
+  const [toast, setToast] = useState(null); // { type: 'success'|'error', message }
+
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 3500);
+    return () => clearTimeout(t);
+  }, [toast]);
 
   const h = adminHeaders(adminSecret);
 
@@ -489,14 +496,16 @@ function AdminDashboard({ adminSecret, zones, onClose, onChanged }) {
       const { booking } = await api.patch(`/api/admin/bookings/${selected.id}`, { decision }, h);
       setSelected({ ...selected, ...booking });
       loadBookings(); loadOverview(); onChanged && onChanged();
-    } catch (e) { alert(e.message); }
+      setToast({ type: "success", message: decision === "disahkan" ? "Tempahan disahkan." : "Tempahan ditolak." });
+    } catch (e) { setToast({ type: "error", message: e.message }); }
   };
 
   const saveSettings = async () => {
     setSavingCfg(true);
     try {
       await api.patch("/api/admin/settings", { settings: settingsData.settings, packages: settingsData.packages }, h);
-    } catch (e) { alert(e.message); }
+      setToast({ type: "success", message: "Tetapan berjaya disimpan." });
+    } catch (e) { setToast({ type: "error", message: e.message }); }
     setSavingCfg(false);
   };
 
@@ -506,9 +515,20 @@ function AdminDashboard({ adminSecret, zones, onClose, onChanged }) {
   return (
     <div className="fixed inset-0 bg-slate-900/60 flex items-center justify-center p-2 sm:p-4 z-50">
       <div className="bg-white rounded-xl w-full max-w-3xl max-h-[95vh] overflow-hidden flex flex-col">
+        {toast && (
+          <div className={`px-4 py-2.5 text-sm font-medium flex items-center justify-between ${toast.type === "success" ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"}`}>
+            <span className="flex items-center gap-2">
+              {toast.type === "success" ? <CheckCircle2 size={15} /> : <AlertCircle size={15} />} {toast.message}
+            </span>
+            <button onClick={() => setToast(null)}><X size={14} /></button>
+          </div>
+        )}
         <div className="flex items-center justify-between p-4 border-b">
           <h3 className="font-bold text-slate-800 flex items-center gap-2"><ShieldCheck size={18} className="text-blue-600" /> Dashboard Admin</h3>
-          <button onClick={onClose}><X size={20} className="text-slate-400" /></button>
+          <div className="flex items-center gap-3">
+            <button onClick={onLogout} className="text-xs text-slate-400 underline hover:text-slate-600">Log Keluar</button>
+            <button onClick={onClose}><X size={20} className="text-slate-400" /></button>
+          </div>
         </div>
         <div className="flex border-b overflow-x-auto shrink-0">
           {[{ key: "pending", label: `Menunggu (${pending.length})`, icon: Bell }, { key: "overview", label: "Ringkasan Zon", icon: MapPin }, { key: "all", label: "Semua Tempahan", icon: Eye }, { key: "settings", label: "Tetapan", icon: Settings }].map((t) => (
@@ -647,12 +667,32 @@ export default function Home() {
     if (params.get("admin") === "1") setShowAdmin(true);
   }, []);
 
+  useEffect(() => {
+    // Pulihkan sesi admin (kalau ada) supaya tak perlu log masuk semula lepas refresh page.
+    try {
+      const saved = sessionStorage.getItem("adminSecret");
+      if (saved) {
+        api.get("/api/admin/bookings", adminHeaders(saved))
+          .then(() => { setAdminSecret(saved); setAdminUnlocked(true); })
+          .catch(() => { try { sessionStorage.removeItem("adminSecret"); } catch {} });
+      }
+    } catch {}
+  }, []);
+
+  const handleAdminLogout = () => {
+    try { sessionStorage.removeItem("adminSecret"); } catch {}
+    setAdminUnlocked(false);
+    setAdminSecret("");
+    setShowAdmin(false);
+  };
+
   const tryAdminLogin = async () => {
     setCheckingPw(true); setPwError("");
     try {
       await api.get("/api/admin/bookings", adminHeaders(pwInput));
       setAdminSecret(pwInput);
       setAdminUnlocked(true);
+      try { sessionStorage.setItem("adminSecret", pwInput); } catch {}
     } catch {
       setPwError("Kata laluan salah.");
     }
@@ -742,7 +782,8 @@ export default function Home() {
 
       {showAdmin && adminUnlocked && (
         <AdminDashboard adminSecret={adminSecret} zones={boot.zones}
-          onClose={() => { setShowAdmin(false); setAdminUnlocked(false); setPwInput(""); setAdminSecret(""); }}
+          onClose={() => setShowAdmin(false)}
+          onLogout={handleAdminLogout}
           onChanged={loadBoot} />
       )}
     </div>

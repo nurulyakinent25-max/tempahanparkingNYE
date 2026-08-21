@@ -11,8 +11,12 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "Method not allowed" });
   }
   try {
-    // Bebaskan lot yang tempoh sewaannya sudah tamat, secara automatik.
-    await supabaseAdmin.rpc("expire_old_bookings");
+    // Bebaskan lot yang tempoh sewaannya sudah tamat, dan batalkan
+    // tempahan "menunggu" yang ditinggalkan tanpa bayaran (>30 minit).
+    await Promise.all([
+      supabaseAdmin.rpc("expire_old_bookings"),
+      supabaseAdmin.rpc("expire_stale_pending_bookings"),
+    ]);
 
     const [
       { data: lots, error: e1 },

@@ -290,3 +290,38 @@ begin
     );
 end;
 $$;
+
+-- ------------------------------------------------------------
+-- 8. FUNGSI: expire_stale_pending_bookings
+--    Tempahan berstatus "menunggu_admin" yang bayarannya masih
+--    "pending" selepas 30 minit (pelanggan tinggalkan tanpa bayar/
+--    upload bukti) dibatalkan automatik & lot dibebaskan semula.
+--    Tempahan pindahan bank yang SUDAH upload bukti (menunggu
+--    semakan admin) TIDAK terjejas - hanya yang benar2 ditinggalkan.
+-- ------------------------------------------------------------
+create or replace function expire_stale_pending_bookings()
+returns void
+language plpgsql
+set search_path = public, pg_temp
+as $$
+declare
+  stale_ids uuid[];
+begin
+  select array_agg(id) into stale_ids
+  from bookings
+  where status = 'menunggu_admin'
+    and payment_status = 'pending'
+    and created_at < now() - interval '30 minutes';
+
+  if stale_ids is not null then
+    update bookings
+    set status = 'ditolak',
+        admin_note = 'Auto-dibatalkan - tiada pengesahan bayaran dalam masa 30 minit'
+    where id = any(stale_ids);
+
+    update lots
+    set status = 'available', current_booking_id = null
+    where current_booking_id = any(stale_ids);
+  end if;
+end;
+$$;
