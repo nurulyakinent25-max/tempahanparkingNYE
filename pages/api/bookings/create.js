@@ -1,4 +1,5 @@
 import { supabaseAdmin } from "../../../lib/supabaseAdmin";
+import { checkRateLimit } from "../../../lib/rateLimit";
 
 // Peraturan harga (disalin daripada supabase/schema.sql jadual `packages`
 // supaya jumlah bayaran dikira semula di server - JANGAN percaya
@@ -28,6 +29,11 @@ function addDays(dateStr, days) {
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
+  }
+
+  const rl = await checkRateLimit(req, { action: "create_booking", limit: 3, windowMinutes: 10 });
+  if (!rl.allowed) {
+    return res.status(429).json({ error: rl.message });
   }
 
   try {

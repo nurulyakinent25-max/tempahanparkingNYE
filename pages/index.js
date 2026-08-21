@@ -261,7 +261,7 @@ function BookingModal({ lot, zones, packages, settings, onClose, onSubmitted }) 
       <div className="bg-white rounded-xl max-w-lg w-full max-h-[92vh] overflow-y-auto">
         <div className="flex items-center justify-between p-4 border-b">
           <div><h3 className="font-bold text-slate-800">Tempah Lot {lot.lot_number}</h3><p className="text-xs text-slate-500">{zone.name} · {zone.tagline}</p></div>
-          <button onClick={onClose}><X size={20} className="text-slate-400" /></button>
+          <button onClick={onClose} aria-label="Tutup"><X size={20} className="text-slate-400" /></button>
         </div>
         <div className="flex px-4 pt-3 gap-1">{[1, 2, 3, 4].map((s) => <div key={s} className={`h-1 flex-1 rounded-full ${s <= step ? "bg-blue-600" : "bg-slate-200"}`} />)}</div>
 
@@ -431,7 +431,7 @@ function LookupBooking({ onClose }) {
       <div className="bg-white rounded-xl max-w-md w-full max-h-[85vh] overflow-y-auto p-5">
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-bold text-slate-800 flex items-center gap-2"><Search size={18} /> Semak Tempahan Saya</h3>
-          <button onClick={onClose}><X size={20} className="text-slate-400" /></button>
+          <button onClick={onClose} aria-label="Tutup"><X size={20} className="text-slate-400" /></button>
         </div>
         <p className="text-xs text-slate-500 mb-2">Masukkan No. KP (12 digit) atau No. Telefon PENUH yang digunakan semasa tempah.</p>
         <div className="flex gap-2 mb-3">
@@ -594,6 +594,7 @@ function AdminDashboard({ adminSecret, zones, packages, onClose, onLogout, onCha
   const [savingCfg, setSavingCfg] = useState(false);
   const [overviewLots, setOverviewLots] = useState([]);
   const [toast, setToast] = useState(null); // { type: 'success'|'error', message }
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     if (!toast) return;
@@ -654,14 +655,14 @@ function AdminDashboard({ adminSecret, zones, packages, onClose, onLogout, onCha
             <span className="flex items-center gap-2">
               {toast.type === "success" ? <CheckCircle2 size={15} /> : <AlertCircle size={15} />} {toast.message}
             </span>
-            <button onClick={() => setToast(null)}><X size={14} /></button>
+            <button onClick={() => setToast(null)} aria-label="Tutup notifikasi"><X size={14} /></button>
           </div>
         )}
         <div className="flex items-center justify-between p-4 border-b">
           <h3 className="font-bold text-slate-800 flex items-center gap-2"><ShieldCheck size={18} className="text-blue-600" /> Dashboard Admin</h3>
           <div className="flex items-center gap-3">
             <button onClick={onLogout} className="text-xs text-slate-400 underline hover:text-slate-600">Log Keluar</button>
-            <button onClick={onClose}><X size={20} className="text-slate-400" /></button>
+            <button onClick={onClose} aria-label="Tutup"><X size={20} className="text-slate-400" /></button>
           </div>
         </div>
         <div className="flex border-b overflow-x-auto shrink-0">
@@ -704,14 +705,36 @@ function AdminDashboard({ adminSecret, zones, packages, onClose, onLogout, onCha
 
           {(tab === "pending" || tab === "all") && !selected && (
             <div className="space-y-2">
+              {tab === "all" && (
+                <div className="relative mb-1">
+                  <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <input
+                    placeholder="Cari ikut no. lot, nama, atau telefon..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full border border-slate-300 rounded-lg pl-9 pr-3 py-2 text-sm"
+                  />
+                </div>
+              )}
               {loading && <p className="text-sm text-slate-400">Memuatkan...</p>}
-              {(tab === "pending" ? pending : bookings).length === 0 && !loading && <p className="text-sm text-slate-400">Tiada rekod.</p>}
-              {(tab === "pending" ? pending : bookings).map((b) => (
-                <button key={b.id} onClick={() => openBooking(b.id)} className="w-full text-left border border-slate-200 rounded-lg p-3 flex items-center justify-between hover:bg-slate-50">
-                  <div><p className="text-sm font-medium text-slate-800">Lot {b.lot_number} · {b.renter_name}</p><p className="text-xs text-slate-400">{b.package_id} · {b.phone}</p></div>
-                  <span className={`text-xs px-2 py-0.5 rounded ${statusChip(b.status)}`}>{b.status}</span>
-                </button>
-              ))}
+              {(() => {
+                const list = tab === "pending" ? pending : bookings;
+                const q = searchQuery.trim().toLowerCase();
+                const filtered = tab === "all" && q
+                  ? list.filter((b) =>
+                      String(b.lot_number).includes(q) ||
+                      (b.renter_name || "").toLowerCase().includes(q) ||
+                      (b.phone || "").includes(q)
+                    )
+                  : list;
+                if (filtered.length === 0 && !loading) return <p className="text-sm text-slate-400">Tiada rekod.</p>;
+                return filtered.map((b) => (
+                  <button key={b.id} onClick={() => openBooking(b.id)} className="w-full text-left border border-slate-200 rounded-lg p-3 flex items-center justify-between hover:bg-slate-50">
+                    <div><p className="text-sm font-medium text-slate-800">Lot {b.lot_number} · {b.renter_name}</p><p className="text-xs text-slate-400">{b.package_id} · {b.phone}</p></div>
+                    <span className={`text-xs px-2 py-0.5 rounded ${statusChip(b.status)}`}>{b.status}</span>
+                  </button>
+                ));
+              })()}
             </div>
           )}
 
@@ -746,6 +769,16 @@ function AdminDashboard({ adminSecret, zones, packages, onClose, onLogout, onCha
                 <div className="flex gap-2 mt-4">
                   <button onClick={() => decide("ditolak")} className="flex-1 py-2.5 rounded-lg border border-red-300 text-red-600 font-medium flex items-center justify-center gap-1"><XCircle size={16} /> Tolak</button>
                   <button onClick={() => decide("disahkan")} className="flex-1 py-2.5 rounded-lg bg-green-600 text-white font-medium flex items-center justify-center gap-1"><CheckCircle2 size={16} /> Sahkan Tempahan</button>
+                </div>
+              ) : selected.status === "disahkan" ? (
+                <div className="mt-4 space-y-2">
+                  <span className={`text-xs px-2 py-1 rounded inline-block ${statusChip(selected.status)}`}>{selected.status}</span>
+                  <button
+                    onClick={() => { if (window.confirm(`Batalkan tempahan Lot ${selected.lot_number}? Lot akan dibebaskan semula untuk ditempah orang lain.`)) decide("ditolak"); }}
+                    className="w-full py-2.5 rounded-lg border border-red-300 text-red-600 font-medium flex items-center justify-center gap-1"
+                  >
+                    <XCircle size={16} /> Batalkan Tempahan
+                  </button>
                 </div>
               ) : (
                 <div className="mt-4"><span className={`text-xs px-2 py-1 rounded ${statusChip(selected.status)}`}>{selected.status}</span></div>
@@ -887,8 +920,8 @@ export default function Home() {
             <div><h1 className="font-bold text-sm leading-tight">Nurul Yaqeen Enterprise</h1><p className="text-[11px] text-slate-400 leading-tight">Tempahan Tapak Parkir · Parit Raja</p></div>
           </div>
           <div className="flex gap-2">
-            <button onClick={() => setShowLookup(true)} className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700"><Search size={16} /></button>
-            <button onClick={() => setShowAdmin(true)} className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700"><Lock size={16} /></button>
+            <button onClick={() => setShowLookup(true)} aria-label="Semak tempahan saya" className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700"><Search size={16} /></button>
+            <button onClick={() => setShowAdmin(true)} aria-label="Log masuk admin" className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700"><Lock size={16} /></button>
           </div>
         </div>
       </header>
@@ -907,6 +940,16 @@ export default function Home() {
 
         <FloorPlan lots={boot.lots} zones={boot.zones} onSelectLot={setSelectedLot} />
         <p className="text-center text-[11px] text-slate-400 mt-2">Ketik mana-mana lot berwarna untuk membuat tempahan.</p>
+
+        <details className="mt-4 bg-white rounded-lg border border-slate-200 p-3 text-xs text-slate-600">
+          <summary className="font-semibold text-slate-700 cursor-pointer">Terma &amp; Syarat Pembatalan</summary>
+          <ul className="mt-2 space-y-1.5 list-disc pl-4">
+            <li>Notis bertulis sekurang-kurangnya <strong>2 minggu</strong> diperlukan sebelum tarikh penamatan sewaan yang diingini.</li>
+            <li>Bayaran yang telah dibuat bagi tempoh yang telah digunakan <strong>tidak akan dikembalikan (tiada refund)</strong>.</li>
+            <li>Tuan Tanah berhak menamatkan perjanjian serta-merta sekiranya berlaku pelanggaran serius terhadap terma sewaan.</li>
+            <li>Sebarang pertanyaan berkaitan pembatalan, sila hubungi admin melalui WhatsApp/emel yang didaftarkan.</li>
+          </ul>
+        </details>
       </div>
 
       {selectedLot && (
@@ -921,7 +964,7 @@ export default function Home() {
           <div className="bg-white rounded-xl max-w-xs w-full p-5">
             <div className="flex items-center justify-between mb-3">
               <h3 className="font-bold text-slate-800 flex items-center gap-2"><Lock size={16} /> Log Masuk Admin</h3>
-              <button onClick={() => { setShowAdmin(false); setPwInput(""); setPwError(""); }}><X size={18} className="text-slate-400" /></button>
+              <button onClick={() => { setShowAdmin(false); setPwInput(""); setPwError(""); }} aria-label="Tutup"><X size={18} className="text-slate-400" /></button>
             </div>
             <input type="password" placeholder="Kata Laluan Admin" value={pwInput} onChange={(e) => setPwInput(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && tryAdminLogin()} className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm mb-2" />

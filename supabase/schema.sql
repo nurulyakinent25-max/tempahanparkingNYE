@@ -407,3 +407,17 @@ begin
   end if;
 end;
 $$;
+
+-- ------------------------------------------------------------
+-- 9. RATE_LIMITS  (had kadar mudah - elak spam cipta tempahan)
+--    Direkod ikut alamat IP pelanggan. Fail-safe: kegagalan baca/tulis
+--    jadual ini tidak menghalang tempahan sah (lihat lib/rateLimit.js).
+-- ------------------------------------------------------------
+create table if not exists rate_limits (
+  id uuid primary key default gen_random_uuid(),
+  rl_key text not null,
+  created_at timestamptz default now()
+);
+create index if not exists idx_rate_limits_key_time on rate_limits (rl_key, created_at);
+alter table rate_limits enable row level security;
+-- Sengaja tiada policy public - hanya service_role (server) boleh akses.
