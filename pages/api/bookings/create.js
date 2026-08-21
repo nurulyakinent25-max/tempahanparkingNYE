@@ -84,6 +84,12 @@ export default async function handler(req, res) {
       if (error.message && error.message.includes("LOT_NOT_AVAILABLE")) {
         return res.status(409).json({ error: "Maaf, lot ini baru sahaja ditempah oleh pengguna lain." });
       }
+      if (error.message && error.message.includes("ZONE_MISMATCH")) {
+        return res.status(400).json({ error: "Pakej yang dipilih tidak sah untuk zon lot ini." });
+      }
+      if (error.message && error.message.includes("PACKAGE_NOT_FOUND")) {
+        return res.status(400).json({ error: "Pakej tidak ditemui." });
+      }
       throw error;
     }
 

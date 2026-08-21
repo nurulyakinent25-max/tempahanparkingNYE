@@ -183,20 +183,33 @@ create trigger trg_bookings_updated_at
 create or replace function create_booking(payload jsonb)
 returns bookings
 language plpgsql
+set search_path = public, pg_temp
 as $$
 declare
   v_lot_status text;
+  v_lot_zone text;
+  v_pkg_zone text;
   v_new_booking bookings;
   v_lot_number int := (payload->>'lot_number')::int;
 begin
   -- kunci baris lot sehingga transaksi ini selesai
-  select status into v_lot_status from lots where lot_number = v_lot_number for update;
+  select status, zone_code into v_lot_status, v_lot_zone from lots where lot_number = v_lot_number for update;
 
   if v_lot_status is null then
     raise exception 'Lot % tidak wujud', v_lot_number;
   end if;
   if v_lot_status <> 'available' then
     raise exception 'LOT_NOT_AVAILABLE';
+  end if;
+
+  -- sahkan pakej yang dipilih memang untuk zon lot ini (elak Zon 1 guna
+  -- harga Pakej Harian Zon 3, dsb, walau apa pun laluan API yang panggil)
+  select zone_code into v_pkg_zone from packages where id = payload->>'package_id';
+  if v_pkg_zone is null then
+    raise exception 'PACKAGE_NOT_FOUND';
+  end if;
+  if v_pkg_zone <> v_lot_zone then
+    raise exception 'ZONE_MISMATCH';
   end if;
 
   insert into bookings (
@@ -246,16 +259,26 @@ set search_path = public, pg_temp
 as $$
 declare
   v_lot_status text;
+  v_lot_zone text;
+  v_pkg_zone text;
   v_new_booking bookings;
   v_lot_number int := (payload->>'lot_number')::int;
 begin
-  select status into v_lot_status from lots where lot_number = v_lot_number for update;
+  select status, zone_code into v_lot_status, v_lot_zone from lots where lot_number = v_lot_number for update;
 
   if v_lot_status is null then
     raise exception 'Lot % tidak wujud', v_lot_number;
   end if;
   if v_lot_status <> 'available' then
     raise exception 'LOT_NOT_AVAILABLE';
+  end if;
+
+  select zone_code into v_pkg_zone from packages where id = payload->>'package_id';
+  if v_pkg_zone is null then
+    raise exception 'PACKAGE_NOT_FOUND';
+  end if;
+  if v_pkg_zone <> v_lot_zone then
+    raise exception 'ZONE_MISMATCH';
   end if;
 
   insert into bookings (
