@@ -904,9 +904,9 @@ export default function Home() {
         <meta property="og:type" content="website" />
         <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
       </Head>
-    <div className="min-h-screen bg-slate-100 pb-10 relative overflow-hidden">
+    <div className="min-h-screen pb-10 relative overflow-hidden">
       {/* Latar belakang dekoratif - corak titik (gaya pelan lukisan/blueprint) + lengkung warna lembut */}
-      <div className="pointer-events-none fixed inset-0 overflow-hidden -z-10">
+      <div className="pointer-events-none fixed inset-0 overflow-hidden -z-10 bg-slate-100">
         <div className="absolute inset-0" style={{ backgroundImage: "radial-gradient(circle, #94a3b8 1px, transparent 1px)", backgroundSize: "26px 26px", opacity: 0.35 }} />
         <div className="absolute -top-32 -left-24 w-[460px] h-[460px] rounded-full bg-blue-400/40 blur-[100px]" />
         <div className="absolute top-1/3 -right-32 w-[500px] h-[500px] rounded-full bg-teal-400/35 blur-[110px]" />
