@@ -904,16 +904,20 @@ export default function Home() {
         <meta property="og:type" content="website" />
         <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
       </Head>
-    <div className="min-h-screen pb-10 relative overflow-hidden">
-      {/* Latar belakang dekoratif - corak titik (gaya pelan lukisan/blueprint) + lengkung warna lembut */}
-      <div className="pointer-events-none fixed inset-0 overflow-hidden -z-10 bg-slate-100">
-        <div className="absolute inset-0" style={{ backgroundImage: "radial-gradient(circle, #94a3b8 1px, transparent 1px)", backgroundSize: "26px 26px", opacity: 0.35 }} />
-        <div className="absolute -top-32 -left-24 w-[460px] h-[460px] rounded-full bg-blue-400/40 blur-[100px]" />
-        <div className="absolute top-1/3 -right-32 w-[500px] h-[500px] rounded-full bg-teal-400/35 blur-[110px]" />
-        <div className="absolute bottom-0 left-1/4 w-[420px] h-[420px] rounded-full bg-amber-300/40 blur-[100px]" />
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-white/20 to-slate-100/60" />
-      </div>
-
+    <div
+      className="min-h-screen pb-10"
+      style={{
+        backgroundColor: "#eef2f7",
+        backgroundImage: [
+          "radial-gradient(circle at 8% 8%, rgba(96,165,250,0.45) 0%, transparent 32%)",
+          "radial-gradient(circle at 92% 28%, rgba(45,212,191,0.40) 0%, transparent 32%)",
+          "radial-gradient(circle at 25% 100%, rgba(252,211,77,0.40) 0%, transparent 32%)",
+          "radial-gradient(circle, #94a3b8 1.2px, transparent 1.2px)",
+        ].join(", "),
+        backgroundSize: "auto, auto, auto, 26px 26px",
+        backgroundRepeat: "no-repeat, no-repeat, no-repeat, repeat",
+      }}
+    >
       <header className="bg-slate-900 text-white px-4 py-4 sticky top-0 z-30">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-2">
