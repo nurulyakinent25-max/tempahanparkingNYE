@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import {
   MapPin, Car, Lock, Search, Bell, Settings, CheckCircle2, XCircle,
   Upload, PenTool, ChevronRight, ChevronLeft, AlertCircle,
-  Trash2, Eye, X, MessageCircle, Mail, ShieldCheck, Loader2, Download,
+  Trash2, Eye, X, MessageCircle, Mail, ShieldCheck, Loader2, Download, Plus,
 } from "lucide-react";
 import Head from "next/head";
 import { api, adminHeaders, printReceipt } from "../lib/apiClient";
@@ -328,6 +328,9 @@ function BookingModal({ lot, zones, packages, settings, onClose, onSubmitted }) 
                 <input placeholder="Jenama Kenderaan" value={form.vehicleBrand} onChange={(e) => updateForm("vehicleBrand", e.target.value)} className="border border-slate-300 rounded-lg px-3 py-2 text-sm" />
                 <input placeholder="Warna Kenderaan" value={form.vehicleColor} onChange={(e) => updateForm("vehicleColor", e.target.value)} className="border border-slate-300 rounded-lg px-3 py-2 text-sm" />
               </div>
+              <p className="text-[10.5px] text-slate-400 leading-relaxed">
+                Maklumat peribadi (Nama, No. KP, telefon, kenderaan) digunakan semata-mata untuk pengesahan tempahan &amp; kontrak sewa, dan tidak dikongsi dengan pihak ketiga.
+              </p>
               <div className="flex gap-2 pt-2">
                 <button onClick={() => setStep(1)} className="flex-1 py-2.5 rounded-lg border border-slate-300 text-slate-600 font-medium flex items-center justify-center gap-1"><ChevronLeft size={16} /> Kembali</button>
                 <button disabled={!canGoStep3} onClick={() => setStep(3)} className={`flex-1 py-2.5 rounded-lg font-medium flex items-center justify-center gap-1 ${canGoStep3 ? "bg-blue-600 text-white" : "bg-slate-200 text-slate-400"}`}>Seterusnya <ChevronRight size={16} /></button>
@@ -458,7 +461,131 @@ function LookupBooking({ onClose }) {
 /* ============================================================
    AdminDashboard
    ============================================================ */
-function AdminDashboard({ adminSecret, zones, onClose, onLogout, onChanged }) {
+function ManualBookingForm({ adminSecret, zones, packages, lots, onDone }) {
+  const availableLots = lots.filter((l) => l.status === "available").sort((a, b) => a.lot_number - b.lot_number);
+  const [lotNumber, setLotNumber] = useState("");
+  const selectedLot = availableLots.find((l) => l.lot_number === Number(lotNumber));
+  const zonePkgs = selectedLot ? packages.filter((p) => p.zone_code === selectedLot.zone_code) : [];
+  const [pkgId, setPkgId] = useState("");
+  const pkg = zonePkgs.find((p) => p.id === pkgId);
+  const [qty, setQty] = useState(1);
+  const [startDate, setStartDate] = useState(todayStr());
+  const [form, setForm] = useState({ renterName: "", ic: "", phone: "", address: "", vehicleType: "Kereta", vehicleBrand: "", vehicleColor: "", plateNumber: "" });
+  const [paymentMethod, setPaymentMethod] = useState("tunai");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
+
+  const updateForm = (k, v) => setForm((f) => ({ ...f, [k]: v }));
+  const totalPrice = pkg ? calcTotal(pkg, qty) : 0;
+  const endDate = pkg ? calcEndDate(pkg, startDate, qty) : startDate;
+
+  const canSubmit = selectedLot && pkg && form.renterName && form.ic.length === 12 && form.phone.length >= 9 &&
+    form.address && form.vehicleBrand && form.vehicleColor && form.plateNumber;
+
+  const handleSubmit = async () => {
+    setError("");
+    if (!canSubmit) { setError("Sila lengkapkan semua ruangan."); return; }
+    setSubmitting(true);
+    try {
+      await api.post("/api/admin/bookings/create-manual", {
+        lot_number: selectedLot.lot_number,
+        package_id: pkg.id,
+        renter_name: form.renterName,
+        ic_number: form.ic,
+        phone: form.phone,
+        address: form.address,
+        vehicle_type: form.vehicleType,
+        vehicle_brand: form.vehicleBrand,
+        vehicle_color: form.vehicleColor,
+        plate_number: form.plateNumber,
+        qty,
+        start_date: startDate,
+        payment_method: paymentMethod,
+      }, adminHeaders(adminSecret));
+      setForm({ renterName: "", ic: "", phone: "", address: "", vehicleType: "Kereta", vehicleBrand: "", vehicleColor: "", plateNumber: "" });
+      setLotNumber(""); setPkgId(""); setQty(1);
+      onDone && onDone(`Lot ${selectedLot.lot_number} berjaya didaftarkan untuk ${form.renterName}.`);
+    } catch (e) {
+      setError(e.message || "Gagal mencipta tempahan.");
+    }
+    setSubmitting(false);
+  };
+
+  return (
+    <div className="max-w-md space-y-3">
+      <p className="text-xs text-slate-500">Untuk pelanggan walk-in/telefon - tempahan terus disahkan (tiada tempoh "menunggu").</p>
+      {error && <div className="flex items-start gap-2 bg-red-50 border border-red-200 text-red-700 text-sm p-2.5 rounded-lg"><AlertCircle size={16} className="mt-0.5 shrink-0" /> {error}</div>}
+
+      <div>
+        <label className="text-xs text-slate-500">Lot Kosong</label>
+        <select value={lotNumber} onChange={(e) => { setLotNumber(e.target.value); setPkgId(""); }} className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm mt-1">
+          <option value="">Pilih lot...</option>
+          {availableLots.map((l) => (
+            <option key={l.lot_number} value={l.lot_number}>Lot {l.lot_number} ({zones.find((z) => z.code === l.zone_code)?.name})</option>
+          ))}
+        </select>
+      </div>
+
+      {selectedLot && (
+        <div>
+          <label className="text-xs text-slate-500">Pakej</label>
+          <select value={pkgId} onChange={(e) => setPkgId(e.target.value)} className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm mt-1">
+            <option value="">Pilih pakej...</option>
+            {zonePkgs.map((p) => <option key={p.id} value={p.id}>{p.label} ({fmtRM(p.price)}{p.mode === "qty" ? `/${p.unit}` : ""})</option>)}
+          </select>
+        </div>
+      )}
+
+      {pkg && pkg.mode === "qty" && (
+        <div>
+          <label className="text-xs text-slate-500">Bilangan {pkg.unit}</label>
+          <input type="number" min={1} value={qty} onChange={(e) => setQty(Math.max(1, parseInt(e.target.value) || 1))} className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm mt-1" />
+        </div>
+      )}
+
+      <div>
+        <label className="text-xs text-slate-500">Tarikh Mula</label>
+        <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm mt-1" />
+      </div>
+
+      {pkg && (
+        <div className="bg-slate-50 rounded-lg p-2.5 text-xs flex justify-between">
+          <span className="text-slate-500">Jumlah ({fmtDateMY(startDate)} - {fmtDateMY(endDate)})</span>
+          <span className="font-semibold">{fmtRM(totalPrice)}</span>
+        </div>
+      )}
+
+      <input placeholder="Nama Penuh" value={form.renterName} onChange={(e) => updateForm("renterName", e.target.value)} className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm" />
+      <input placeholder="No. Kad Pengenalan (12 digit)" value={form.ic} inputMode="numeric" maxLength={12}
+        onChange={(e) => updateForm("ic", e.target.value.replace(/[^0-9]/g, "").slice(0, 12))} className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm" />
+      <input placeholder="No. Telefon" value={form.phone} inputMode="numeric"
+        onChange={(e) => updateForm("phone", e.target.value.replace(/[^0-9]/g, ""))} className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm" />
+      <textarea placeholder="Alamat" value={form.address} onChange={(e) => updateForm("address", e.target.value)} rows={2} className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm" />
+      <div className="grid grid-cols-2 gap-3">
+        <select value={form.vehicleType} onChange={(e) => updateForm("vehicleType", e.target.value)} className="border border-slate-300 rounded-lg px-3 py-2 text-sm"><option>Kereta</option><option>Motosikal</option></select>
+        <input placeholder="No. Plat" value={form.plateNumber} onChange={(e) => updateForm("plateNumber", e.target.value)} className="border border-slate-300 rounded-lg px-3 py-2 text-sm" />
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <input placeholder="Jenama Kenderaan" value={form.vehicleBrand} onChange={(e) => updateForm("vehicleBrand", e.target.value)} className="border border-slate-300 rounded-lg px-3 py-2 text-sm" />
+        <input placeholder="Warna Kenderaan" value={form.vehicleColor} onChange={(e) => updateForm("vehicleColor", e.target.value)} className="border border-slate-300 rounded-lg px-3 py-2 text-sm" />
+      </div>
+
+      <div>
+        <label className="text-xs text-slate-500">Kaedah Bayaran</label>
+        <select value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)} className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm mt-1">
+          <option value="tunai">Tunai</option>
+          <option value="transfer">Pindahan Bank</option>
+        </select>
+      </div>
+
+      <button onClick={handleSubmit} disabled={!canSubmit || submitting} className={`w-full py-2.5 rounded-lg font-medium flex items-center justify-center gap-2 ${canSubmit && !submitting ? "bg-green-600 text-white" : "bg-slate-200 text-slate-400"}`}>
+        {submitting ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />} Daftar & Sahkan Tempahan
+      </button>
+    </div>
+  );
+}
+
+function AdminDashboard({ adminSecret, zones, packages, onClose, onLogout, onChanged }) {
   const [tab, setTab] = useState("pending");
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -538,7 +665,7 @@ function AdminDashboard({ adminSecret, zones, onClose, onLogout, onChanged }) {
           </div>
         </div>
         <div className="flex border-b overflow-x-auto shrink-0">
-          {[{ key: "pending", label: `Menunggu (${pending.length})`, icon: Bell }, { key: "overview", label: "Ringkasan Zon", icon: MapPin }, { key: "all", label: "Semua Tempahan", icon: Eye }, { key: "settings", label: "Tetapan", icon: Settings }].map((t) => (
+          {[{ key: "pending", label: `Menunggu (${pending.length})`, icon: Bell }, { key: "overview", label: "Ringkasan Zon", icon: MapPin }, { key: "manual", label: "Tempah Manual", icon: Plus }, { key: "all", label: "Semua Tempahan", icon: Eye }, { key: "settings", label: "Tetapan", icon: Settings }].map((t) => (
             <button key={t.key} onClick={() => { setTab(t.key); setSelected(null); }} className={`flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium whitespace-nowrap border-b-2 ${tab === t.key ? "border-blue-600 text-blue-600" : "border-transparent text-slate-500"}`}>
               <t.icon size={14} /> {t.label}
             </button>
@@ -563,6 +690,16 @@ function AdminDashboard({ adminSecret, zones, onClose, onLogout, onChanged }) {
                 );
               })}
             </div>
+          )}
+
+          {tab === "manual" && (
+            <ManualBookingForm
+              adminSecret={adminSecret}
+              zones={zones}
+              packages={packages}
+              lots={overviewLots}
+              onDone={(msg) => { setToast({ type: "success", message: msg }); loadOverview(); loadBookings(); onChanged && onChanged(); }}
+            />
           )}
 
           {(tab === "pending" || tab === "all") && !selected && (
@@ -797,7 +934,7 @@ export default function Home() {
       )}
 
       {showAdmin && adminUnlocked && (
-        <AdminDashboard adminSecret={adminSecret} zones={boot.zones}
+        <AdminDashboard adminSecret={adminSecret} zones={boot.zones} packages={boot.packages}
           onClose={() => setShowAdmin(false)}
           onLogout={handleAdminLogout}
           onChanged={loadBoot} />

@@ -135,7 +135,7 @@ create table if not exists bookings (
   total_price numeric(10,2) not null,
 
   -- Pembayaran
-  payment_method text not null check (payment_method in ('online', 'transfer')),
+  payment_method text not null check (payment_method in ('online', 'transfer', 'tunai')),
   payment_status text not null default 'pending'
     check (payment_status in ('pending', 'paid', 'failed')),
   payment_ref text,
@@ -232,7 +232,66 @@ end;
 $$;
 
 -- ------------------------------------------------------------
--- 6. ROW LEVEL SECURITY (RLS)
+-- 5c. FUNGSI: create_booking_admin
+--     Untuk pelanggan walk-in/telefon yang admin daftar terus.
+--     Berbeza dengan create_booking (pelanggan): tempahan ini terus
+--     berstatus 'disahkan' & lot terus 'occupied' (admin sendiri
+--     yang mengesahkan pembayaran secara peribadi, jadi tiada
+--     tempoh "menunggu_admin").
+-- ------------------------------------------------------------
+create or replace function create_booking_admin(payload jsonb)
+returns bookings
+language plpgsql
+set search_path = public, pg_temp
+as $$
+declare
+  v_lot_status text;
+  v_new_booking bookings;
+  v_lot_number int := (payload->>'lot_number')::int;
+begin
+  select status into v_lot_status from lots where lot_number = v_lot_number for update;
+
+  if v_lot_status is null then
+    raise exception 'Lot % tidak wujud', v_lot_number;
+  end if;
+  if v_lot_status <> 'available' then
+    raise exception 'LOT_NOT_AVAILABLE';
+  end if;
+
+  insert into bookings (
+    lot_number, package_id, renter_name, ic_number, phone, address,
+    vehicle_type, vehicle_brand, vehicle_color, plate_number,
+    qty, start_date, end_date, total_price, payment_method, contract_text,
+    payment_status, status, admin_note
+  ) values (
+    v_lot_number,
+    payload->>'package_id',
+    payload->>'renter_name',
+    payload->>'ic_number',
+    payload->>'phone',
+    payload->>'address',
+    payload->>'vehicle_type',
+    payload->>'vehicle_brand',
+    payload->>'vehicle_color',
+    payload->>'plate_number',
+    coalesce((payload->>'qty')::int, 1),
+    (payload->>'start_date')::date,
+    (payload->>'end_date')::date,
+    (payload->>'total_price')::numeric,
+    coalesce(payload->>'payment_method', 'tunai'),
+    payload->>'contract_text',
+    'paid',
+    'disahkan',
+    'Didaftarkan terus oleh admin (pelanggan walk-in/telefon)'
+  )
+  returning * into v_new_booking;
+
+  update lots set status = 'occupied', current_booking_id = v_new_booking.id
+    where lot_number = v_lot_number;
+
+  return v_new_booking;
+end;
+$$;
 --    Prinsip: data sensitif (bookings - ada IC/telefon/gambar) TIDAK
 --    didedahkan terus kepada client. Semua bacaan/tulisan bookings
 --    berlaku melalui backend API routes (pages/api/...) yang guna
