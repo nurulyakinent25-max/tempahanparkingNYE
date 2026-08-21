@@ -2,9 +2,10 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import {
   MapPin, Car, Lock, Search, Bell, Settings, CheckCircle2, XCircle,
   Upload, PenTool, ChevronRight, ChevronLeft, AlertCircle,
-  Trash2, Eye, X, MessageCircle, Mail, ShieldCheck, Loader2,
+  Trash2, Eye, X, MessageCircle, Mail, ShieldCheck, Loader2, Download,
 } from "lucide-react";
-import { api, adminHeaders } from "../lib/apiClient";
+import Head from "next/head";
+import { api, adminHeaders, printReceipt } from "../lib/apiClient";
 import FloorPlan from "../components/FloorPlan";
 
 /* ============================================================
@@ -243,6 +244,12 @@ function BookingModal({ lot, zones, packages, settings, onClose, onSubmitted }) 
             </a>
           </div>
           {(!waLink || !mailLink) && <p className="text-[11px] text-amber-600 mb-3">Admin belum isi No. WhatsApp/emel di Tetapan.</p>}
+          <button
+            onClick={() => printReceipt({ ...result, renter_name: form.renterName, package_label: pkg.label, total_price: totalPrice })}
+            className="w-full py-2.5 rounded-lg border border-slate-300 text-slate-700 font-medium mb-2 flex items-center justify-center gap-2"
+          >
+            <Download size={16} /> Muat Turun / Cetak Resit
+          </button>
           <button onClick={onClose} className="w-full py-2.5 rounded-lg bg-slate-800 text-white font-medium">Tutup</button>
         </div>
       </div>
@@ -718,6 +725,15 @@ export default function Home() {
   const totalAvailable = boot.lots.filter((l) => l.status === "available").length;
 
   return (
+    <>
+      <Head>
+        <title>Tempahan Tapak Parkir - Nurul Yaqeen Enterprise</title>
+        <meta name="description" content="Tempah lot tapak parkir bulanan, 3 bulan, semester atau harian di Parit Raja secara dalam talian. Semak status lot secara live dan buat tempahan dalam beberapa minit." />
+        <meta property="og:title" content="Tempahan Tapak Parkir - Nurul Yaqeen Enterprise" />
+        <meta property="og:description" content="Tempah lot tapak parkir secara dalam talian di Parit Raja - pakej semester, 3 bulan, bulanan atau harian." />
+        <meta property="og:type" content="website" />
+        <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+      </Head>
     <div className="min-h-screen bg-slate-100 pb-10 relative overflow-hidden">
       {/* Latar belakang dekoratif - lengkung warna lembut (mesh gradient), tema sepadan dengan warna zon */}
       <div className="pointer-events-none fixed inset-0 overflow-hidden -z-10">
@@ -787,5 +803,6 @@ export default function Home() {
           onChanged={loadBoot} />
       )}
     </div>
+    </>
   );
 }
