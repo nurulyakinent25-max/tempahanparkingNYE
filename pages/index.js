@@ -905,12 +905,13 @@ export default function Home() {
         <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
       </Head>
     <div className="min-h-screen bg-slate-100 pb-10 relative overflow-hidden">
-      {/* Latar belakang dekoratif - lengkung warna lembut (mesh gradient), tema sepadan dengan warna zon */}
+      {/* Latar belakang dekoratif - corak titik (gaya pelan lukisan/blueprint) + lengkung warna lembut */}
       <div className="pointer-events-none fixed inset-0 overflow-hidden -z-10">
-        <div className="absolute -top-32 -left-24 w-[420px] h-[420px] rounded-full bg-blue-300/30 blur-[100px]" />
-        <div className="absolute top-1/3 -right-32 w-[480px] h-[480px] rounded-full bg-teal-300/25 blur-[110px]" />
-        <div className="absolute bottom-0 left-1/4 w-[380px] h-[380px] rounded-full bg-amber-200/30 blur-[100px]" />
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-white/40 to-slate-100" />
+        <div className="absolute inset-0" style={{ backgroundImage: "radial-gradient(circle, #94a3b8 1px, transparent 1px)", backgroundSize: "26px 26px", opacity: 0.35 }} />
+        <div className="absolute -top-32 -left-24 w-[460px] h-[460px] rounded-full bg-blue-400/40 blur-[100px]" />
+        <div className="absolute top-1/3 -right-32 w-[500px] h-[500px] rounded-full bg-teal-400/35 blur-[110px]" />
+        <div className="absolute bottom-0 left-1/4 w-[420px] h-[420px] rounded-full bg-amber-300/40 blur-[100px]" />
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-white/20 to-slate-100/60" />
       </div>
 
       <header className="bg-slate-900 text-white px-4 py-4 sticky top-0 z-30">
