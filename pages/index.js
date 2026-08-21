@@ -929,7 +929,14 @@ export default function Home() {
       <div className="max-w-6xl mx-auto px-4 pt-4">
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 mb-4 flex items-center justify-between">
           <div><p className="text-xs text-slate-400">Lot kosong sekarang</p><p className="text-2xl font-bold text-slate-800">{totalAvailable} <span className="text-sm font-normal text-slate-400">/ {boot.lots.length}</span></p></div>
-          <MapPin className="text-blue-500" size={28} />
+          <a
+            href="https://www.google.com/maps/search/?api=1&query=1.8625125,103.1000196"
+            target="_blank" rel="noreferrer"
+            aria-label="Buka lokasi tapak parkir di Google Maps"
+            className="p-2 rounded-full hover:bg-blue-50 transition-colors"
+          >
+            <MapPin className="text-blue-500" size={28} />
+          </a>
         </div>
 
         <div className="grid grid-cols-3 gap-2 mb-4 text-center text-xs">
