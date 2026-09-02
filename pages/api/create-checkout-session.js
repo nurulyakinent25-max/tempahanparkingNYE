@@ -1,5 +1,5 @@
-import { stripe } from "../../lib/stripe";
 import { supabaseAdmin } from "../../lib/supabaseAdmin";
+import { createBill } from "../../lib/billplz";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
@@ -10,11 +10,11 @@ export default async function handler(req, res) {
     const { bookingId } = req.body;
     if (!bookingId) return res.status(400).json({ error: "bookingId diperlukan" });
 
-    // Ambil butiran tempahan dari Supabase - JANGAN sesekali percaya
-    // jumlah harga yang dihantar terus dari client/browser.
+    // Ambil butiran tempahan dari Supabase - JANGAN percaya jumlah harga
+    // yang mungkin dihantar terus dari client/browser.
     const { data: booking, error } = await supabaseAdmin
       .from("bookings")
-      .select("id, lot_number, package_id, total_price, payment_status, packages(label)")
+      .select("id, lot_number, package_id, total_price, payment_status, renter_name, phone, packages(label)")
       .eq("id", bookingId)
       .single();
 
@@ -25,36 +25,25 @@ export default async function handler(req, res) {
 
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
 
-    const session = await stripe.checkout.sessions.create({
-      mode: "payment",
-      payment_method_types: ["card", "fpx"], // fpx = perbankan dalam talian Malaysia
-      currency: "myr",
-      line_items: [
-        {
-          price_data: {
-            currency: "myr",
-            product_data: {
-              name: `Sewaan Lot ${booking.lot_number} - ${booking.packages?.label || booking.package_id}`,
-            },
-            unit_amount: Math.round(Number(booking.total_price) * 100), // Stripe guna sen, bukan RM
-          },
-          quantity: 1,
-        },
-      ],
-      metadata: { booking_id: booking.id },
-      success_url: `${siteUrl}/booking/success?bookingId=${booking.id}`,
-      cancel_url: `${siteUrl}/booking/cancel?bookingId=${booking.id}`,
+    const bill = await createBill({
+      collectionId: process.env.BILLPLZ_COLLECTION_ID,
+      mobile: booking.phone,
+      name: booking.renter_name,
+      amountSen: Math.round(Number(booking.total_price) * 100), // Billplz guna sen, bukan RM
+      description: `Sewaan Lot ${booking.lot_number} - ${booking.packages?.label || booking.package_id}`,
+      callbackUrl: `${siteUrl}/api/billplz-webhook`,
+      redirectUrl: `${siteUrl}/booking/success?bookingId=${booking.id}`,
     });
 
-    // Simpan session id awal-awal supaya webhook mudah dipadankan semula
+    // Simpan Bill ID Billplz supaya webhook boleh padankan semula ke tempahan ini.
     await supabaseAdmin
       .from("bookings")
-      .update({ stripe_session_id: session.id })
+      .update({ billplz_bill_id: bill.id })
       .eq("id", booking.id);
 
-    return res.status(200).json({ url: session.url });
+    return res.status(200).json({ url: bill.url });
   } catch (err) {
-    console.error("create-checkout-session error:", err);
-    return res.status(500).json({ error: "Gagal mencipta sesi pembayaran." });
+    console.error("create-checkout-session (billplz) error:", err);
+    return res.status(500).json({ error: err.message || "Gagal mencipta bil pembayaran." });
   }
 }
