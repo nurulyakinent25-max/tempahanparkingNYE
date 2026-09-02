@@ -200,7 +200,7 @@ function BookingModal({ lot, zones, packages, settings, onClose, onSubmitted }) 
 
       if (paymentMethod === "online") {
         const { url } = await api.post("/api/create-checkout-session", { bookingId: booking.id });
-        window.location.href = url; // redirect penuh ke Stripe Checkout
+        window.location.href = url; // redirect penuh ke Billplz
         return;
       }
 
@@ -383,8 +383,8 @@ function BookingModal({ lot, zones, packages, settings, onClose, onSubmitted }) 
                 </div>
               ) : (
                 <div className="bg-slate-50 rounded-lg p-3 text-sm space-y-2">
-                  <p className="text-slate-600">Anda akan diarahkan ke gerbang pembayaran Stripe (Kad/FPX) untuk membayar <strong>{fmtRM(totalPrice)}</strong>.</p>
-                  <p className="text-xs text-slate-500">Selepas tandatangan di langkah seterusnya, anda akan dibawa terus ke halaman pembayaran selamat Stripe.</p>
+                  <p className="text-slate-600">Anda akan diarahkan ke gerbang pembayaran Billplz (Kad/FPX) untuk membayar <strong>{fmtRM(totalPrice)}</strong>.</p>
+                  <p className="text-xs text-slate-500">Selepas tandatangan di langkah seterusnya, anda akan dibawa terus ke halaman pembayaran selamat Billplz.</p>
                 </div>
               )}
 
