@@ -325,7 +325,31 @@ function BookingModal({ lot, zones, packages, settings, onClose, onSubmitted }) 
                 <input placeholder="No. Plat" value={form.plateNumber} onChange={(e) => updateForm("plateNumber", e.target.value)} className="border border-slate-300 rounded-lg px-3 py-2 text-sm" />
               </div>
               <div className="grid grid-cols-2 gap-3">
-                <input placeholder="Jenama Kenderaan" value={form.vehicleBrand} onChange={(e) => updateForm("vehicleBrand", e.target.value)} className="border border-slate-300 rounded-lg px-3 py-2 text-sm" />
+                <input placeholder="Jenama & Model Kenderaan (taip atau pilih)" list="vehicle-brands-1" value={form.vehicleBrand} onChange={(e) => updateForm("vehicleBrand", e.target.value)} className="border border-slate-300 rounded-lg px-3 py-2 text-sm" />
+              <datalist id="vehicle-brands-1">
+<option value="Proton Saga" /><option value="Proton Persona" /><option value="Proton Iriz" />
+        <option value="Proton Exora" /><option value="Proton X50" /><option value="Proton X70" />
+        <option value="Proton X90" /><option value="Proton Wira" /><option value="Proton Satria" />
+        <option value="Perodua Axia" /><option value="Perodua Bezza" /><option value="Perodua Myvi" />
+        <option value="Perodua Alza" /><option value="Perodua Aruz" /><option value="Perodua Ativa" />
+        <option value="Perodua Kancil" /><option value="Perodua Viva" />
+        <option value="Toyota Vios" /><option value="Toyota Yaris" /><option value="Toyota Corolla Altis" />
+        <option value="Toyota Camry" /><option value="Toyota Hilux" /><option value="Toyota Fortuner" />
+        <option value="Toyota Innova" /><option value="Toyota Avanza" /><option value="Toyota Rush" />
+        <option value="Honda City" /><option value="Honda Civic" /><option value="Honda Accord" />
+        <option value="Honda CR-V" /><option value="Honda HR-V" /><option value="Honda Jazz" /><option value="Honda BR-V" />
+        <option value="Nissan Almera" /><option value="Nissan X-Trail" /><option value="Nissan Navara" />
+        <option value="Mazda2" /><option value="Mazda3" /><option value="Mazda CX-5" /><option value="Mazda CX-3" />
+        <option value="Mitsubishi Triton" /><option value="Mitsubishi ASX" /><option value="Mitsubishi Xpander" />
+        <option value="Hyundai Elantra" /><option value="Hyundai Tucson" /><option value="Kia Picanto" /><option value="Kia Sportage" />
+        <option value="BMW 3 Series" /><option value="BMW 5 Series" /><option value="BMW X1" /><option value="BMW X5" />
+        <option value="Mercedes-Benz C-Class" /><option value="Mercedes-Benz E-Class" /><option value="Mercedes-Benz GLC" />
+        <option value="Volkswagen Polo" /><option value="Volkswagen Passat" /><option value="Ford Ranger" />
+        <option value="Isuzu D-Max" />
+        <option value="Honda EX5" /><option value="Honda Wave" /><option value="Honda RS150" /><option value="Honda PCX" />
+        <option value="Yamaha Y15ZR" /><option value="Yamaha LC135" /><option value="Yamaha NVX" /><option value="Yamaha Ego" />
+        <option value="Modenas Kriss" /><option value="Modenas Karisma" />
+              </datalist>
                 <input placeholder="Warna Kenderaan" value={form.vehicleColor} onChange={(e) => updateForm("vehicleColor", e.target.value)} className="border border-slate-300 rounded-lg px-3 py-2 text-sm" />
               </div>
               <p className="text-[10.5px] text-slate-400 leading-relaxed">
@@ -566,7 +590,31 @@ function ManualBookingForm({ adminSecret, zones, packages, lots, onDone }) {
         <input placeholder="No. Plat" value={form.plateNumber} onChange={(e) => updateForm("plateNumber", e.target.value)} className="border border-slate-300 rounded-lg px-3 py-2 text-sm" />
       </div>
       <div className="grid grid-cols-2 gap-3">
-        <input placeholder="Jenama Kenderaan" value={form.vehicleBrand} onChange={(e) => updateForm("vehicleBrand", e.target.value)} className="border border-slate-300 rounded-lg px-3 py-2 text-sm" />
+        <input placeholder="Jenama & Model Kenderaan (taip atau pilih)" list="vehicle-brands-2" value={form.vehicleBrand} onChange={(e) => updateForm("vehicleBrand", e.target.value)} className="border border-slate-300 rounded-lg px-3 py-2 text-sm" />
+              <datalist id="vehicle-brands-2">
+<option value="Proton Saga" /><option value="Proton Persona" /><option value="Proton Iriz" />
+        <option value="Proton Exora" /><option value="Proton X50" /><option value="Proton X70" />
+        <option value="Proton X90" /><option value="Proton Wira" /><option value="Proton Satria" />
+        <option value="Perodua Axia" /><option value="Perodua Bezza" /><option value="Perodua Myvi" />
+        <option value="Perodua Alza" /><option value="Perodua Aruz" /><option value="Perodua Ativa" />
+        <option value="Perodua Kancil" /><option value="Perodua Viva" />
+        <option value="Toyota Vios" /><option value="Toyota Yaris" /><option value="Toyota Corolla Altis" />
+        <option value="Toyota Camry" /><option value="Toyota Hilux" /><option value="Toyota Fortuner" />
+        <option value="Toyota Innova" /><option value="Toyota Avanza" /><option value="Toyota Rush" />
+        <option value="Honda City" /><option value="Honda Civic" /><option value="Honda Accord" />
+        <option value="Honda CR-V" /><option value="Honda HR-V" /><option value="Honda Jazz" /><option value="Honda BR-V" />
+        <option value="Nissan Almera" /><option value="Nissan X-Trail" /><option value="Nissan Navara" />
+        <option value="Mazda2" /><option value="Mazda3" /><option value="Mazda CX-5" /><option value="Mazda CX-3" />
+        <option value="Mitsubishi Triton" /><option value="Mitsubishi ASX" /><option value="Mitsubishi Xpander" />
+        <option value="Hyundai Elantra" /><option value="Hyundai Tucson" /><option value="Kia Picanto" /><option value="Kia Sportage" />
+        <option value="BMW 3 Series" /><option value="BMW 5 Series" /><option value="BMW X1" /><option value="BMW X5" />
+        <option value="Mercedes-Benz C-Class" /><option value="Mercedes-Benz E-Class" /><option value="Mercedes-Benz GLC" />
+        <option value="Volkswagen Polo" /><option value="Volkswagen Passat" /><option value="Ford Ranger" />
+        <option value="Isuzu D-Max" />
+        <option value="Honda EX5" /><option value="Honda Wave" /><option value="Honda RS150" /><option value="Honda PCX" />
+        <option value="Yamaha Y15ZR" /><option value="Yamaha LC135" /><option value="Yamaha NVX" /><option value="Yamaha Ego" />
+        <option value="Modenas Kriss" /><option value="Modenas Karisma" />
+              </datalist>
         <input placeholder="Warna Kenderaan" value={form.vehicleColor} onChange={(e) => updateForm("vehicleColor", e.target.value)} className="border border-slate-300 rounded-lg px-3 py-2 text-sm" />
       </div>
 
