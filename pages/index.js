@@ -310,7 +310,7 @@ function BookingModal({ lot, zones, packages, settings, onClose, onSubmitted }) 
 
           {step === 2 && (
             <div className="space-y-3">
-              <input placeholder="Nama Penuh" value={form.renterName} onChange={(e) => updateForm("renterName", e.target.value)} className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm" />
+              <input placeholder="Nama Penuh" value={form.renterName} onChange={(e) => updateForm("renterName", e.target.value.toUpperCase())} className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm" />
               <div>
                 <input placeholder="No. Kad Pengenalan (12 digit, tanpa sengkang)" value={form.ic} inputMode="numeric" pattern="[0-9]*" maxLength={12}
                   onChange={(e) => updateForm("ic", e.target.value.replace(/[^0-9]/g, "").slice(0, 12))}
@@ -319,13 +319,13 @@ function BookingModal({ lot, zones, packages, settings, onClose, onSubmitted }) 
               </div>
               <input placeholder="No. Telefon" value={form.phone} inputMode="numeric" pattern="[0-9]*"
                 onChange={(e) => updateForm("phone", e.target.value.replace(/[^0-9]/g, ""))} className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm" />
-              <textarea placeholder="Alamat" value={form.address} onChange={(e) => updateForm("address", e.target.value)} rows={2} className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm" />
+              <textarea placeholder="Alamat" value={form.address} onChange={(e) => updateForm("address", e.target.value.toUpperCase())} rows={2} className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm" />
               <div className="grid grid-cols-2 gap-3">
                 <select value={form.vehicleType} onChange={(e) => updateForm("vehicleType", e.target.value)} className="border border-slate-300 rounded-lg px-3 py-2 text-sm"><option>Kereta</option><option>Motosikal</option></select>
-                <input placeholder="No. Plat" value={form.plateNumber} onChange={(e) => updateForm("plateNumber", e.target.value)} className="border border-slate-300 rounded-lg px-3 py-2 text-sm" />
+                <input placeholder="No. Plat" value={form.plateNumber} onChange={(e) => updateForm("plateNumber", e.target.value.toUpperCase())} className="border border-slate-300 rounded-lg px-3 py-2 text-sm" />
               </div>
               <div className="grid grid-cols-2 gap-3">
-                <input placeholder="Jenama & Model Kenderaan (taip atau pilih)" list="vehicle-brands-1" value={form.vehicleBrand} onChange={(e) => updateForm("vehicleBrand", e.target.value)} className="border border-slate-300 rounded-lg px-3 py-2 text-sm" />
+                <input placeholder="Jenama & Model Kenderaan (taip atau pilih)" list="vehicle-brands-1" value={form.vehicleBrand} onChange={(e) => updateForm("vehicleBrand", e.target.value.toUpperCase())} className="border border-slate-300 rounded-lg px-3 py-2 text-sm" />
               <datalist id="vehicle-brands-1">
 <option value="Proton Saga" /><option value="Proton Persona" /><option value="Proton Iriz" />
         <option value="Proton Exora" /><option value="Proton X50" /><option value="Proton X70" />
@@ -350,7 +350,7 @@ function BookingModal({ lot, zones, packages, settings, onClose, onSubmitted }) 
         <option value="Yamaha Y15ZR" /><option value="Yamaha LC135" /><option value="Yamaha NVX" /><option value="Yamaha Ego" />
         <option value="Modenas Kriss" /><option value="Modenas Karisma" />
               </datalist>
-                <input placeholder="Warna Kenderaan" value={form.vehicleColor} onChange={(e) => updateForm("vehicleColor", e.target.value)} className="border border-slate-300 rounded-lg px-3 py-2 text-sm" />
+                <input placeholder="Warna Kenderaan" value={form.vehicleColor} onChange={(e) => updateForm("vehicleColor", e.target.value.toUpperCase())} className="border border-slate-300 rounded-lg px-3 py-2 text-sm" />
               </div>
               <p className="text-[10.5px] text-slate-400 leading-relaxed">
                 Maklumat peribadi (Nama, No. KP, telefon, kenderaan) digunakan semata-mata untuk pengesahan tempahan &amp; kontrak sewa, dan tidak dikongsi dengan pihak ketiga.
@@ -373,6 +373,8 @@ function BookingModal({ lot, zones, packages, settings, onClose, onSubmitted }) 
                 <div className="bg-slate-50 rounded-lg p-3 text-sm space-y-2">
                   <p>Sila pindahkan <strong>{fmtRM(totalPrice)}</strong> ke:</p>
                   <p className="font-mono font-semibold">{settings.bank_account}</p>
+                  <img src="/qr-bank.jpg" alt="QR Kod Pindahan Bank Nurul Yaqeen Enterprise" className="mx-auto w-40 h-auto rounded-lg border border-slate-200" />
+                  <p className="text-[11px] text-slate-400 text-center">Atau imbas QR di atas menggunakan aplikasi perbankan/e-wallet anda.</p>
                   <input placeholder="No. Rujukan Transaksi" value={paymentRef} onChange={(e) => setPaymentRef(e.target.value)} className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm" />
                   <div>
                     <label className="text-xs text-slate-500 flex items-center gap-1 mb-1"><Upload size={13} /> Muat Naik Bukti Pembayaran</label>
@@ -579,18 +581,18 @@ function ManualBookingForm({ adminSecret, zones, packages, lots, onDone }) {
         </div>
       )}
 
-      <input placeholder="Nama Penuh" value={form.renterName} onChange={(e) => updateForm("renterName", e.target.value)} className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm" />
+      <input placeholder="Nama Penuh" value={form.renterName} onChange={(e) => updateForm("renterName", e.target.value.toUpperCase())} className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm" />
       <input placeholder="No. Kad Pengenalan (12 digit)" value={form.ic} inputMode="numeric" maxLength={12}
         onChange={(e) => updateForm("ic", e.target.value.replace(/[^0-9]/g, "").slice(0, 12))} className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm" />
       <input placeholder="No. Telefon" value={form.phone} inputMode="numeric"
         onChange={(e) => updateForm("phone", e.target.value.replace(/[^0-9]/g, ""))} className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm" />
-      <textarea placeholder="Alamat" value={form.address} onChange={(e) => updateForm("address", e.target.value)} rows={2} className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm" />
+      <textarea placeholder="Alamat" value={form.address} onChange={(e) => updateForm("address", e.target.value.toUpperCase())} rows={2} className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm" />
       <div className="grid grid-cols-2 gap-3">
         <select value={form.vehicleType} onChange={(e) => updateForm("vehicleType", e.target.value)} className="border border-slate-300 rounded-lg px-3 py-2 text-sm"><option>Kereta</option><option>Motosikal</option></select>
-        <input placeholder="No. Plat" value={form.plateNumber} onChange={(e) => updateForm("plateNumber", e.target.value)} className="border border-slate-300 rounded-lg px-3 py-2 text-sm" />
+        <input placeholder="No. Plat" value={form.plateNumber} onChange={(e) => updateForm("plateNumber", e.target.value.toUpperCase())} className="border border-slate-300 rounded-lg px-3 py-2 text-sm" />
       </div>
       <div className="grid grid-cols-2 gap-3">
-        <input placeholder="Jenama & Model Kenderaan (taip atau pilih)" list="vehicle-brands-2" value={form.vehicleBrand} onChange={(e) => updateForm("vehicleBrand", e.target.value)} className="border border-slate-300 rounded-lg px-3 py-2 text-sm" />
+        <input placeholder="Jenama & Model Kenderaan (taip atau pilih)" list="vehicle-brands-2" value={form.vehicleBrand} onChange={(e) => updateForm("vehicleBrand", e.target.value.toUpperCase())} className="border border-slate-300 rounded-lg px-3 py-2 text-sm" />
               <datalist id="vehicle-brands-2">
 <option value="Proton Saga" /><option value="Proton Persona" /><option value="Proton Iriz" />
         <option value="Proton Exora" /><option value="Proton X50" /><option value="Proton X70" />
@@ -615,7 +617,7 @@ function ManualBookingForm({ adminSecret, zones, packages, lots, onDone }) {
         <option value="Yamaha Y15ZR" /><option value="Yamaha LC135" /><option value="Yamaha NVX" /><option value="Yamaha Ego" />
         <option value="Modenas Kriss" /><option value="Modenas Karisma" />
               </datalist>
-        <input placeholder="Warna Kenderaan" value={form.vehicleColor} onChange={(e) => updateForm("vehicleColor", e.target.value)} className="border border-slate-300 rounded-lg px-3 py-2 text-sm" />
+        <input placeholder="Warna Kenderaan" value={form.vehicleColor} onChange={(e) => updateForm("vehicleColor", e.target.value.toUpperCase())} className="border border-slate-300 rounded-lg px-3 py-2 text-sm" />
       </div>
 
       <div>

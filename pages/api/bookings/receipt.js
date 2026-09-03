@@ -12,7 +12,7 @@ export default async function handler(req, res) {
   try {
     const { data: booking, error } = await supabaseAdmin
       .from("bookings")
-      .select("id, lot_number, renter_name, total_price, payment_method, payment_status, start_date, end_date, created_at, packages(label)")
+      .select("id, lot_number, renter_name, total_price, payment_method, payment_status, start_date, end_date, created_at, paid_at, confirmed_at, packages(label)")
       .eq("id", id)
       .single();
 
@@ -29,6 +29,8 @@ export default async function handler(req, res) {
         start_date: booking.start_date,
         end_date: booking.end_date,
         created_at: booking.created_at,
+        paid_at: booking.paid_at,
+        confirmed_at: booking.confirmed_at,
         package_label: booking.packages?.label,
       },
     });

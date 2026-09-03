@@ -148,7 +148,10 @@ function LotBox({ n, pos, zoneCode, status, plateNumber, endDate, isDaily, onCli
   const stroke = isAvailable ? ZONE_ACCENT[zoneCode] || "#94a3b8" : isPending ? "#fbbf24" : "#475569";
   const textColor = isAvailable ? "#f8fafc" : isPending ? "#fde68a" : "#cbd5e1";
   const narrow = pos.w < 90; // kotak potret (baris atas) lebih sempit - kecilkan fon sikit
-  const untilText = isDaily ? formatShortDateTime(endDate) : formatShortDate(endDate);
+  // Rentetan ISO penuh (dgn masa) lebih panjang drpd "YYYY-MM-DD" (10 aksara) -
+  // guna ini utk tentukan sama ada nak papar masa sekali, utk SEMUA pakej
+  // (bukan Pakej Harian sahaja) apabila data confirmed_at wujud.
+  const untilText = endDate && endDate.length > 10 ? formatShortDateTime(endDate) : formatShortDate(endDate);
 
   return (
     <g

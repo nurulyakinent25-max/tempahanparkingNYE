@@ -44,13 +44,26 @@ export default async function handler(req, res) {
 
     const lotsWithInfo = lots.map((l) => {
       const info = l.current_booking_id ? bookingInfo[l.current_booking_id] : null;
-      // Untuk Pakej Harian, kira masa tamat TEPAT (24 jam x hari dari masa
-      // disahkan admin) supaya paparan & auto-clear konsisten.
+      // Kira masa TEPAT sepadan dengan bila admin sahkan tempahan, untuk
+      // SEMUA pakej (bukan Harian sahaja) - supaya paparan konsisten.
       let untilDisplay = info?.end_date || null;
-      if (info && info.package_id === "harian" && info.confirmed_at) {
-        const exact = new Date(info.confirmed_at);
-        exact.setHours(exact.getHours() + info.qty * 24);
-        untilDisplay = exact.toISOString();
+      if (info && info.confirmed_at) {
+        if (info.package_id === "harian") {
+          // Pakej Harian: tamat TEPAT 24 jam x bilangan hari dari masa disahkan.
+          const exact = new Date(info.confirmed_at);
+          exact.setHours(exact.getHours() + info.qty * 24);
+          untilDisplay = exact.toISOString();
+        } else if (info.end_date) {
+          // Pakej lain: kekalkan tarikh akhir (end_date) tetapi guna masa
+          // TEPAT sepadan dengan waktu sebenar tempahan disahkan.
+          const confirmedTime = new Date(info.confirmed_at);
+          const [y, m, d] = info.end_date.split("-").map(Number);
+          const combined = new Date(Date.UTC(
+            y, m - 1, d,
+            confirmedTime.getUTCHours(), confirmedTime.getUTCMinutes(), confirmedTime.getUTCSeconds()
+          ));
+          untilDisplay = combined.toISOString();
+        }
       }
       return {
         lot_number: l.lot_number,
