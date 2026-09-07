@@ -87,8 +87,8 @@ export default async function handler(req, res) {
     });
 
     if (error) {
-      if (error.message && error.message.includes("LOT_NOT_AVAILABLE")) {
-        return res.status(409).json({ error: "Maaf, lot ini baru sahaja ditempah oleh pengguna lain." });
+      if (error.message && error.message.includes("DATE_CONFLICT")) {
+        return res.status(409).json({ error: "Maaf, lot ini sudah ditempah oleh orang lain untuk tempoh tarikh yang bertindih dengan pilihan anda. Sila pilih tarikh mula yang lain atau lot lain." });
       }
       if (error.message && error.message.includes("ZONE_MISMATCH")) {
         return res.status(400).json({ error: "Pakej yang dipilih tidak sah untuk zon lot ini." });

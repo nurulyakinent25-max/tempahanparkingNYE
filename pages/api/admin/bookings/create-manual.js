@@ -71,6 +71,9 @@ export default async function handler(req, res) {
     });
 
     if (error) {
+      if (error.message && error.message.includes("DATE_CONFLICT")) {
+        return res.status(409).json({ error: "Lot ini sudah ditempah oleh tempahan lain untuk tempoh tarikh yang bertindih. Sila pilih tarikh atau lot lain." });
+      }
       if (error.message && error.message.includes("LOT_NOT_AVAILABLE")) {
         return res.status(409).json({ error: "Lot ini tidak lagi kosong." });
       }

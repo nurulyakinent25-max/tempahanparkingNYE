@@ -42,6 +42,11 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: "Keputusan tidak sah." });
       }
 
+      // Nota reka bentuk baharu: status ketersediaan lot kini DIKIRA SECARA
+      // DINAMIK (lihat /api/lots) berdasarkan tarikh tempahan aktif - jadi
+      // tiada lagi keperluan kemas kini jadual `lots` di sini. Menukar status
+      // tempahan ke 'disahkan'/'ditolak' sudah cukup: ia secara automatik
+      // mengubah cara lot ini dikira pada kunjungan /api/lots seterusnya.
       const { data: booking, error: e1 } = await supabaseAdmin
         .from("bookings")
         .update({
@@ -53,14 +58,6 @@ export default async function handler(req, res) {
         .select()
         .single();
       if (e1) throw e1;
-
-      await supabaseAdmin
-        .from("lots")
-        .update({
-          status: decision === "disahkan" ? "occupied" : "available",
-          current_booking_id: decision === "disahkan" ? booking.id : null,
-        })
-        .eq("lot_number", booking.lot_number);
 
       return res.status(200).json({ booking });
     } catch (err) {
