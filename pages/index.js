@@ -778,6 +778,36 @@ function BulkBookingForm({ adminSecret, lots, onDone }) {
   const [totalPrice, setTotalPrice] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("tunai");
   const [submitting, setSubmitting] = useState(false);
+
+  // Senarai kumpulan pukal AKTIF (utk batalkan seluruh kumpulan sekali gus).
+  const [batches, setBatches] = useState([]);
+  const [loadingBatches, setLoadingBatches] = useState(true);
+  const [cancellingBatch, setCancellingBatch] = useState(null);
+
+  const loadBatches = useCallback(async () => {
+    setLoadingBatches(true);
+    try { const d = await api.get("/api/admin/bookings/bulk-batches", adminHeaders(adminSecret)); setBatches(d.batches || []); }
+    catch {}
+    setLoadingBatches(false);
+  }, [adminSecret]);
+
+  useEffect(() => { loadBatches(); }, [loadBatches]);
+
+  const [batchError, setBatchError] = useState("");
+  const cancelBatch = async (batchId, renterName) => {
+    if (!window.confirm(`Batalkan SELURUH tempahan pukal untuk "${renterName}"? Semua lot dalam kumpulan ini akan dibebaskan semula.`)) return;
+    setBatchError("");
+    setCancellingBatch(batchId);
+    try {
+      await api.post("/api/admin/bookings/cancel-batch", { batch_id: batchId }, adminHeaders(adminSecret));
+      loadBatches();
+      onDone && onDone(`Tempahan pukal "${renterName}" dibatalkan.`);
+    } catch (e) {
+      setBatchError(e.message || "Gagal membatalkan tempahan pukal.");
+    }
+    setCancellingBatch(null);
+  };
+
   const [error, setError] = useState("");
 
   const updateForm = (k, v) => setForm((f) => ({ ...f, [k]: v }));
@@ -814,6 +844,7 @@ function BulkBookingForm({ adminSecret, lots, onDone }) {
       }, adminHeaders(adminSecret));
       setForm({ renterName: "", ic: "", phone: "", address: "" });
       setTotalPrice("");
+      loadBatches();
       onDone && onDone(`${bookings.length} lot berjaya ditempah secara pukal untuk ${form.renterName}.`);
     } catch (e) {
       setError(e.message || "Gagal mencipta tempahan pukal.");
@@ -885,6 +916,38 @@ function BulkBookingForm({ adminSecret, lots, onDone }) {
       <button onClick={handleSubmit} disabled={!canSubmit || submitting} className={`w-full py-2.5 rounded-lg font-medium flex items-center justify-center gap-2 ${canSubmit && !submitting ? "bg-green-600 text-white" : "bg-slate-200 text-slate-400"}`}>
         {submitting ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />} Daftar Tempahan Pukal ({n} Lot)
       </button>
+
+      <div className="pt-4 border-t border-slate-200">
+        <p className="text-sm font-semibold text-slate-700 mb-2">Tempahan Pukal Aktif</p>
+        {batchError && <p className="text-xs text-red-600 mb-2">{batchError}</p>}
+        {loadingBatches ? (
+          <p className="text-xs text-slate-400">Memuatkan...</p>
+        ) : batches.length === 0 ? (
+          <p className="text-xs text-slate-400">Tiada tempahan pukal aktif setakat ini.</p>
+        ) : (
+          <div className="space-y-2">
+            {batches.map((b) => (
+              <div key={b.batch_id} className="border border-slate-200 rounded-lg p-3">
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <p className="text-sm font-medium text-slate-800">{b.renter_name}</p>
+                    <p className="text-xs text-slate-500 mt-0.5">{fmtDateMY(b.start_date)} &ndash; {fmtDateMY(b.end_date)}</p>
+                    <p className="text-xs text-slate-500">{b.lot_numbers.length} lot: {b.lot_numbers.join(", ")}</p>
+                    <p className="text-xs text-slate-500">Jumlah: {fmtRM(b.total_price)}</p>
+                  </div>
+                  <button
+                    onClick={() => cancelBatch(b.batch_id, b.renter_name)}
+                    disabled={cancellingBatch === b.batch_id}
+                    className="shrink-0 text-xs px-3 py-1.5 rounded-lg border border-red-300 text-red-600 font-medium flex items-center gap-1"
+                  >
+                    {cancellingBatch === b.batch_id ? <Loader2 size={13} className="animate-spin" /> : <XCircle size={13} />} Batal
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
