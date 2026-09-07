@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import {
   MapPin, Car, Lock, Search, Bell, Settings, CheckCircle2, XCircle,
   Upload, PenTool, ChevronRight, ChevronLeft, AlertCircle,
-  Trash2, Eye, X, MessageCircle, Mail, ShieldCheck, Loader2, Download, Plus,
+  Trash2, Eye, X, MessageCircle, Mail, ShieldCheck, Loader2, Download, Plus, Layers,
 } from "lucide-react";
 import Head from "next/head";
 import { api, adminHeaders, printReceipt } from "../lib/apiClient";
@@ -769,6 +769,126 @@ function ManualBookingForm({ adminSecret, zones, packages, lots, onDone }) {
   );
 }
 
+function BulkBookingForm({ adminSecret, lots, onDone }) {
+  const allLotNumbers = lots.map((l) => l.lot_number).sort((a, b) => a - b);
+  const [selectedLots, setSelectedLots] = useState(new Set(allLotNumbers)); // default: SEMUA lot
+  const [startDate, setStartDate] = useState(todayStr());
+  const [endDate, setEndDate] = useState(todayStr());
+  const [form, setForm] = useState({ renterName: "", ic: "", phone: "", address: "" });
+  const [totalPrice, setTotalPrice] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState("tunai");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
+
+  const updateForm = (k, v) => setForm((f) => ({ ...f, [k]: v }));
+  const toggleLot = (n) => setSelectedLots((prev) => {
+    const next = new Set(prev);
+    next.has(n) ? next.delete(n) : next.add(n);
+    return next;
+  });
+  const selectAll = () => setSelectedLots(new Set(allLotNumbers));
+  const selectNone = () => setSelectedLots(new Set());
+
+  const n = selectedLots.size;
+  const perLot = n > 0 && totalPrice ? (Number(totalPrice) / n).toFixed(2) : "0.00";
+
+  const canSubmit = n > 0 && startDate && endDate && endDate >= startDate &&
+    form.renterName && form.ic.length === 12 && form.phone.length >= 9 && form.address &&
+    totalPrice && Number(totalPrice) > 0;
+
+  const handleSubmit = async () => {
+    setError("");
+    if (!canSubmit) { setError("Sila lengkapkan semua ruangan dengan betul."); return; }
+    setSubmitting(true);
+    try {
+      const { bookings } = await api.post("/api/admin/bookings/create-bulk", {
+        lot_numbers: Array.from(selectedLots),
+        renter_name: form.renterName,
+        ic_number: form.ic,
+        phone: form.phone,
+        address: form.address,
+        start_date: startDate,
+        end_date: endDate,
+        total_price: Number(totalPrice),
+        payment_method: paymentMethod,
+      }, adminHeaders(adminSecret));
+      setForm({ renterName: "", ic: "", phone: "", address: "" });
+      setTotalPrice("");
+      onDone && onDone(`${bookings.length} lot berjaya ditempah secara pukal untuk ${form.renterName}.`);
+    } catch (e) {
+      setError(e.message || "Gagal mencipta tempahan pukal.");
+    }
+    setSubmitting(false);
+  };
+
+  return (
+    <div className="max-w-lg space-y-3">
+      <p className="text-xs text-slate-500">Untuk tempahan PUKAL (lumpsum) merangkumi banyak lot serentak - cth. acara/kumpulan yang sewa keseluruhan tapak. Jumlah bayaran akan dibahagi sama rata antara lot yang dipilih.</p>
+      {error && <div className="flex items-start gap-2 bg-red-50 border border-red-200 text-red-700 text-sm p-2.5 rounded-lg"><AlertCircle size={16} className="mt-0.5 shrink-0" /> {error}</div>}
+
+      <div>
+        <div className="flex items-center justify-between mb-1.5">
+          <label className="text-xs text-slate-500">Pilih Lot ({n} dipilih daripada {allLotNumbers.length})</label>
+          <div className="flex gap-2">
+            <button type="button" onClick={selectAll} className="text-xs text-blue-600 underline">Pilih Semua</button>
+            <button type="button" onClick={selectNone} className="text-xs text-slate-400 underline">Nyahpilih Semua</button>
+          </div>
+        </div>
+        <div className="border border-slate-200 rounded-lg p-2 max-h-40 overflow-y-auto grid grid-cols-6 sm:grid-cols-8 gap-1.5">
+          {allLotNumbers.map((num) => (
+            <button
+              type="button"
+              key={num}
+              onClick={() => toggleLot(num)}
+              className={`text-xs py-1.5 rounded font-medium border ${selectedLots.has(num) ? "bg-blue-600 text-white border-blue-600" : "bg-white text-slate-500 border-slate-200"}`}
+            >
+              {num}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="text-xs text-slate-500">Tarikh Mula</label>
+          <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm mt-1" />
+        </div>
+        <div>
+          <label className="text-xs text-slate-500">Tarikh Akhir</label>
+          <input type="date" value={endDate} min={startDate} onChange={(e) => setEndDate(e.target.value)} className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm mt-1" />
+        </div>
+      </div>
+
+      <div>
+        <label className="text-xs text-slate-500">Jumlah Bayaran PUKAL Keseluruhan (RM)</label>
+        <input type="number" min="0" step="0.01" value={totalPrice} onChange={(e) => setTotalPrice(e.target.value)} placeholder="cth. 300" className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm mt-1" />
+        {n > 0 && totalPrice && (
+          <p className="text-[11px] text-slate-400 mt-1">= {fmtRM(perLot)} setiap lot ({n} lot)</p>
+        )}
+      </div>
+
+      <input placeholder="Nama Penuh / Nama Kumpulan" value={form.renterName} onChange={(e) => updateForm("renterName", e.target.value.toUpperCase())} className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm" />
+      <input placeholder="No. Kad Pengenalan (12 digit)" value={form.ic} inputMode="numeric" maxLength={12}
+        onChange={(e) => updateForm("ic", e.target.value.replace(/[^0-9]/g, "").slice(0, 12))} className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm" />
+      <input placeholder="No. Telefon" value={form.phone} inputMode="numeric"
+        onChange={(e) => updateForm("phone", e.target.value.replace(/[^0-9]/g, ""))} className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm" />
+      <textarea placeholder="Alamat" value={form.address} onChange={(e) => updateForm("address", e.target.value.toUpperCase())} rows={2} className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm" />
+
+      <div>
+        <label className="text-xs text-slate-500">Kaedah Bayaran</label>
+        <select value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)} className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm mt-1">
+          <option value="tunai">Tunai</option>
+          <option value="transfer">Pindahan Bank</option>
+        </select>
+      </div>
+
+      <button onClick={handleSubmit} disabled={!canSubmit || submitting} className={`w-full py-2.5 rounded-lg font-medium flex items-center justify-center gap-2 ${canSubmit && !submitting ? "bg-green-600 text-white" : "bg-slate-200 text-slate-400"}`}>
+        {submitting ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />} Daftar Tempahan Pukal ({n} Lot)
+      </button>
+    </div>
+  );
+}
+
 function AdminDashboard({ adminSecret, zones, packages, onClose, onLogout, onChanged }) {
   const [tab, setTab] = useState("pending");
   const [bookings, setBookings] = useState([]);
@@ -850,7 +970,7 @@ function AdminDashboard({ adminSecret, zones, packages, onClose, onLogout, onCha
           </div>
         </div>
         <div className="flex border-b overflow-x-auto shrink-0">
-          {[{ key: "pending", label: `Menunggu (${pending.length})`, icon: Bell }, { key: "overview", label: "Ringkasan Zon", icon: MapPin }, { key: "manual", label: "Tempah Manual", icon: Plus }, { key: "all", label: "Semua Tempahan", icon: Eye }, { key: "settings", label: "Tetapan", icon: Settings }].map((t) => (
+          {[{ key: "pending", label: `Menunggu (${pending.length})`, icon: Bell }, { key: "overview", label: "Ringkasan Zon", icon: MapPin }, { key: "manual", label: "Tempah Manual", icon: Plus }, { key: "bulk", label: "Tempahan Pukal", icon: Layers }, { key: "all", label: "Semua Tempahan", icon: Eye }, { key: "settings", label: "Tetapan", icon: Settings }].map((t) => (
             <button key={t.key} onClick={() => { setTab(t.key); setSelected(null); }} className={`flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium whitespace-nowrap border-b-2 ${tab === t.key ? "border-blue-600 text-blue-600" : "border-transparent text-slate-500"}`}>
               <t.icon size={14} /> {t.label}
             </button>
@@ -887,6 +1007,14 @@ function AdminDashboard({ adminSecret, zones, packages, onClose, onLogout, onCha
             />
           )}
 
+          {tab === "bulk" && (
+            <BulkBookingForm
+              adminSecret={adminSecret}
+              lots={overviewLots}
+              onDone={(msg) => { setToast({ type: "success", message: msg }); loadOverview(); loadBookings(); onChanged && onChanged(); }}
+            />
+          )}
+
           {(tab === "pending" || tab === "all") && !selected && (
             <div className="space-y-2">
               {tab === "all" && (
@@ -914,7 +1042,7 @@ function AdminDashboard({ adminSecret, zones, packages, onClose, onLogout, onCha
                 if (filtered.length === 0 && !loading) return <p className="text-sm text-slate-400">Tiada rekod.</p>;
                 return filtered.map((b) => (
                   <button key={b.id} onClick={() => openBooking(b.id)} className="w-full text-left border border-slate-200 rounded-lg p-3 flex items-center justify-between hover:bg-slate-50">
-                    <div><p className="text-sm font-medium text-slate-800">Lot {b.lot_number} · {b.renter_name}</p><p className="text-xs text-slate-400">{b.package_id} · {b.phone}</p></div>
+                    <div><p className="text-sm font-medium text-slate-800">Lot {b.lot_number} · {b.renter_name}</p><p className="text-xs text-slate-400">{b.package_id || "Tempahan Pukal"} · {b.phone}</p></div>
                     <span className={`text-xs px-2 py-0.5 rounded ${statusChip(b.status)}`}>{b.status}</span>
                   </button>
                 ));
@@ -935,7 +1063,7 @@ function AdminDashboard({ adminSecret, zones, packages, onClose, onLogout, onCha
                   <p><span className="text-slate-500">Kenderaan:</span> {selected.vehicle_type} · {selected.vehicle_brand} · {selected.vehicle_color} · {selected.plate_number}</p>
                   <p className="font-semibold text-slate-800 mt-3 mb-1">Tempahan</p>
                   <p><span className="text-slate-500">Lot:</span> {selected.lot_number}</p>
-                  <p><span className="text-slate-500">Pakej:</span> {selected.packages?.label || selected.package_id}</p>
+                  <p><span className="text-slate-500">Pakej:</span> {selected.packages?.label || selected.package_id || "Tempahan Pukal (Lumpsum)"}</p>
                   <p><span className="text-slate-500">Tempoh:</span> {fmtDateMY(selected.start_date)} - {fmtDateMY(selected.end_date)}</p>
                   <p><span className="text-slate-500">Jumlah:</span> {fmtRM(selected.total_price)}</p>
                   <p><span className="text-slate-500">Bayaran:</span> {selected.payment_method === "online" ? "Online" : "Pindahan Bank"} · Status: {selected.payment_status}</p>
