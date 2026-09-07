@@ -200,7 +200,7 @@ function AvailabilityCalendar({ busyRanges, selectedDate, onSelectDate }) {
 /* ============================================================
    BookingModal
    ============================================================ */
-function BookingModal({ lot, zones, packages, settings, onClose, onSubmitted }) {
+function BookingModal({ lot, zones, packages, settings, onClose, onSubmitted, initialPkgId, initialStartDate }) {
   const zone = zones.find((z) => z.code === lot.zone_code);
   const availablePkgs = packages.filter((p) => p.zone_code === lot.zone_code);
 
@@ -217,11 +217,11 @@ function BookingModal({ lot, zones, packages, settings, onClose, onSubmitted }) 
   }, [lot.lot_number]);
 
   const [step, setStep] = useState(1);
-  const [pkgId, setPkgId] = useState(availablePkgs[0]?.id);
+  const [pkgId, setPkgId] = useState(initialPkgId || availablePkgs[0]?.id);
   const pkg = packages.find((p) => p.id === pkgId);
   const [qty, setQty] = useState(1);
   const [qtyInput, setQtyInput] = useState("1");
-  const [startDate, setStartDate] = useState(todayStr());
+  const [startDate, setStartDate] = useState(initialStartDate || todayStr());
   const [form, setForm] = useState({ renterName: "", ic: "", phone: "", address: "", vehicleType: "Kereta", vehicleBrand: "", vehicleColor: "", plateNumber: "" });
   const [paymentMethod, setPaymentMethod] = useState("transfer");
   const [paymentRef, setPaymentRef] = useState("");
@@ -1001,11 +1001,74 @@ function AdminDashboard({ adminSecret, zones, packages, onClose, onLogout, onCha
 }
 
 /* ============================================================
+   QuickSearch — "Carian Pantas" untuk pelanggan yang malas klik
+   satu-satu: pilih pakej & tarikh, sistem terus cadangkan lot kosong.
+   ============================================================ */
+function QuickSearch({ packages, onFoundLot }) {
+  const [pkgId, setPkgId] = useState("");
+  const [startDate, setStartDate] = useState(todayStr());
+  const [searching, setSearching] = useState(false);
+  const [results, setResults] = useState(null); // { availableLots, zone_code } | null
+  const [error, setError] = useState("");
+
+  const search = async () => {
+    if (!pkgId) { setError("Sila pilih pakej dahulu."); return; }
+    setError(""); setSearching(true); setResults(null);
+    try {
+      const d = await api.get(`/api/bookings/find-available-lots?package_id=${pkgId}&start_date=${startDate}`);
+      setResults(d);
+    } catch (e) {
+      setError(e.message || "Gagal mencari lot kosong.");
+    }
+    setSearching(false);
+  };
+
+  return (
+    <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 mb-4">
+      <p className="text-sm font-bold text-slate-800 flex items-center gap-1.5"><Search size={15} /> Carian Pantas Lot Kosong</p>
+      <p className="text-xs text-slate-500 mt-0.5 mb-3">Malas klik satu-satu? Pilih pakej &amp; tarikh, kami cadangkan lot yang kosong untuk anda.</p>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-2">
+        <select value={pkgId} onChange={(e) => { setPkgId(e.target.value); setResults(null); }} className="border border-slate-300 rounded-lg px-3 py-2 text-sm">
+          <option value="">Pilih pakej...</option>
+          {packages.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}
+        </select>
+        <input type="date" value={startDate} min={todayStr()} onChange={(e) => { setStartDate(e.target.value); setResults(null); }} className="border border-slate-300 rounded-lg px-3 py-2 text-sm" />
+      </div>
+      <button onClick={search} disabled={searching} className="w-full py-2.5 rounded-lg bg-blue-600 text-white text-sm font-medium flex items-center justify-center gap-2">
+        {searching ? <Loader2 size={14} className="animate-spin" /> : <Search size={14} />} Cari Lot Kosong
+      </button>
+      {error && <p className="text-xs text-red-500 mt-2">{error}</p>}
+      {results && (
+        results.availableLots.length === 0 ? (
+          <p className="text-xs text-amber-600 mt-3">Maaf, tiada lot kosong untuk pakej &amp; tarikh ini. Cuba tarikh lain.</p>
+        ) : (
+          <div className="mt-3">
+            <p className="text-xs text-slate-500 mb-1.5">{results.availableLots.length} lot kosong dijumpai &mdash; klik untuk terus tempah:</p>
+            <div className="flex flex-wrap gap-1.5">
+              {results.availableLots.map((n) => (
+                <button
+                  key={n}
+                  onClick={() => onFoundLot(n, results.zone_code, pkgId, startDate)}
+                  className="px-3 py-1.5 rounded-lg bg-blue-50 border border-blue-300 text-blue-700 text-sm font-medium hover:bg-blue-100"
+                >
+                  Lot {n}
+                </button>
+              ))}
+            </div>
+          </div>
+        )
+      )}
+    </div>
+  );
+}
+
+/* ============================================================
    HALAMAN UTAMA
    ============================================================ */
 export default function Home() {
   const [boot, setBoot] = useState(null); // { lots, packages, zones, settings }
   const [selectedLot, setSelectedLot] = useState(null);
+  const [prefill, setPrefill] = useState(null); // { pkgId, startDate } - dari Carian Pantas
   const [showLookup, setShowLookup] = useState(false);
   const [showAdmin, setShowAdmin] = useState(false);
   const [adminUnlocked, setAdminUnlocked] = useState(false);
@@ -1134,7 +1197,15 @@ export default function Home() {
           <div className="bg-white rounded-lg border border-slate-200 shadow-sm p-2"><span className="inline-block w-3 h-3 rounded-full bg-slate-400 mb-1"></span><p className="text-slate-500">Disewa</p></div>
         </div>
 
-        <FloorPlan lots={boot.lots} zones={boot.zones} onSelectLot={setSelectedLot} />
+        <QuickSearch
+          packages={boot.packages}
+          onFoundLot={(lotNumber, zoneCode, pkgId, startDate) => {
+            setPrefill({ pkgId, startDate });
+            setSelectedLot({ lot_number: lotNumber, zone_code: zoneCode, status: "available" });
+          }}
+        />
+
+        <FloorPlan lots={boot.lots} zones={boot.zones} onSelectLot={(l) => { setPrefill(null); setSelectedLot(l); }} />
         <p className="text-center text-[11px] text-slate-400 mt-2">Ketik mana-mana lot berwarna untuk membuat tempahan.</p>
 
         <details className="mt-4 bg-white rounded-lg border border-slate-200 p-3 text-xs text-slate-600">
@@ -1150,7 +1221,8 @@ export default function Home() {
 
       {selectedLot && (
         <BookingModal lot={selectedLot} zones={boot.zones} packages={boot.packages} settings={boot.settings}
-          onClose={() => setSelectedLot(null)} onSubmitted={loadBoot} />
+          initialPkgId={prefill?.pkgId} initialStartDate={prefill?.startDate}
+          onClose={() => { setSelectedLot(null); setPrefill(null); }} onSubmitted={loadBoot} />
       )}
 
       {showLookup && <LookupBooking onClose={() => setShowLookup(false)} />}
