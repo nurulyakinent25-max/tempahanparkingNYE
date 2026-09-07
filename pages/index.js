@@ -129,6 +129,19 @@ function SignaturePad({ onChange }) {
 function BookingModal({ lot, zones, packages, settings, onClose, onSubmitted }) {
   const zone = zones.find((z) => z.code === lot.zone_code);
   const availablePkgs = packages.filter((p) => p.zone_code === lot.zone_code);
+
+  // Tarikh yang SUDAH ditempah untuk lot ini - dipapar di Langkah 1 supaya
+  // pelanggan boleh terus nampak tarikh mana yang kosong, macam tempahan hotel.
+  const [busyRanges, setBusyRanges] = useState([]);
+  const [busyLoading, setBusyLoading] = useState(true);
+  useEffect(() => {
+    setBusyLoading(true);
+    api.get(`/api/bookings/lot-schedule?lot_number=${lot.lot_number}`)
+      .then((d) => setBusyRanges(d.busyRanges || []))
+      .catch(() => setBusyRanges([]))
+      .finally(() => setBusyLoading(false));
+  }, [lot.lot_number]);
+
   const [step, setStep] = useState(1);
   const [pkgId, setPkgId] = useState(availablePkgs[0]?.id);
   const pkg = packages.find((p) => p.id === pkgId);
@@ -276,7 +289,17 @@ function BookingModal({ lot, zones, packages, settings, onClose, onSubmitted }) 
     <div className="fixed inset-0 bg-slate-900/50 flex items-center justify-center p-4 z-50">
       <div className="bg-white rounded-xl max-w-lg w-full max-h-[92vh] overflow-y-auto">
         <div className="flex items-center justify-between p-4 border-b">
-          <div><h3 className="font-bold text-slate-800">Tempah Lot {lot.lot_number}</h3><p className="text-xs text-slate-500">{zone.name} · {zone.tagline}</p></div>
+          <div>
+            <h3 className="font-bold text-slate-800 flex items-center gap-2">
+              Tempah Lot {lot.lot_number}
+              {lot.status !== "available" && (
+                <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-amber-100 text-amber-700">
+                  {lot.status === "occupied" ? "Disewa hari ini" : "Menunggu pengesahan hari ini"}
+                </span>
+              )}
+            </h3>
+            <p className="text-xs text-slate-500">{zone.name} · {zone.tagline}</p>
+          </div>
           <button onClick={onClose} aria-label="Tutup"><X size={20} className="text-slate-400" /></button>
         </div>
         <div className="flex px-4 pt-3 gap-1">{[1, 2, 3, 4].map((s) => <div key={s} className={`h-1 flex-1 rounded-full ${s <= step ? "bg-blue-600" : "bg-slate-200"}`} />)}</div>
@@ -286,6 +309,22 @@ function BookingModal({ lot, zones, packages, settings, onClose, onSubmitted }) 
 
           {step === 1 && (
             <div className="space-y-4">
+              {busyLoading ? (
+                <p className="text-xs text-slate-400 flex items-center gap-1"><Loader2 size={12} className="animate-spin" /> Menyemak tarikh yang telah ditempah...</p>
+              ) : busyRanges.length > 0 ? (
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs text-amber-800">
+                  <p className="font-semibold mb-1">Tarikh yang TELAH ditempah untuk lot ini:</p>
+                  <ul className="list-disc pl-4 space-y-0.5">
+                    {busyRanges.map((r, i) => (
+                      <li key={i}>{fmtDateMY(r.start_date)} &ndash; {fmtDateMY(r.end_date)}</li>
+                    ))}
+                  </ul>
+                  <p className="mt-1.5 text-amber-700">Sila pilih tarikh mula di LUAR tempoh di atas.</p>
+                </div>
+              ) : (
+                <p className="text-xs text-green-700 bg-green-50 border border-green-200 rounded-lg p-2.5">Lot ini kosong sepenuhnya buat masa ini - semua tarikh boleh dipilih.</p>
+              )}
+
               <div>
                 <label className="text-sm font-medium text-slate-700">Pilih Pakej</label>
                 <div className="grid grid-cols-1 gap-2 mt-1.5">

@@ -156,9 +156,9 @@ function LotBox({ n, pos, zoneCode, status, plateNumber, endDate, isDaily, onCli
   return (
     <g
       transform={`translate(${pos.x},${pos.y})`}
-      onClick={() => isAvailable && onClick({ lot_number: n, zone_code: zoneCode, status })}
-      style={{ cursor: isAvailable ? "pointer" : "default" }}
-      className={isAvailable ? "transition-opacity hover:opacity-75" : ""}
+      onClick={() => onClick({ lot_number: n, zone_code: zoneCode, status })}
+      style={{ cursor: "pointer" }}
+      className="transition-opacity hover:opacity-75"
     >
       <rect width={pos.w} height={pos.h} rx="6" fill={fill} stroke={stroke} strokeWidth={isAvailable ? 2.5 : 1.6} />
 
@@ -222,7 +222,7 @@ export default function FloorPlan({ lots, zones, onSelectLot }) {
       <div className="flex items-center justify-between px-1 pb-2">
         <div>
           <p className="text-xs font-bold text-slate-200 tracking-wide">PETA TAPAK</p>
-          <p className="text-xs text-slate-400">Ketik lot berwarna untuk tempah &middot; Leret ke kiri atau kanan untuk lihat keseluruhan</p>
+          <p className="text-xs text-slate-400">Ketik mana-mana lot untuk lihat tarikh kosong &amp; tempah &middot; Leret ke kiri atau kanan untuk lihat keseluruhan</p>
         </div>
         <div className="flex gap-3">
           {zones.map((z) => <ZoneChip key={z.code} code={z.code} label={z.tagline} />)}
