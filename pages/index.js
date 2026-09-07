@@ -150,6 +150,21 @@ function BookingModal({ lot, zones, packages, settings, onClose, onSubmitted }) 
   const endDate = calcEndDate(pkg, startDate, qty);
   const updateForm = (k, v) => setForm((f) => ({ ...f, [k]: v }));
 
+  // Semak ketersediaan tarikh secara automatik (dengan lengah sedikit)
+  // supaya pelanggan tahu SEGERA kalau tarikh bertindih, tanpa perlu isi
+  // borang penuh dulu sebelum ditolak di langkah akhir.
+  const [availability, setAvailability] = useState({ checking: false, available: true, checked: false });
+  useEffect(() => {
+    if (!lot?.lot_number || !startDate || !endDate) return;
+    setAvailability((a) => ({ ...a, checking: true }));
+    const t = setTimeout(() => {
+      api.get(`/api/bookings/check-availability?lot_number=${lot.lot_number}&start_date=${startDate}&end_date=${endDate}`)
+        .then((d) => setAvailability({ checking: false, available: d.available, checked: true }))
+        .catch(() => setAvailability({ checking: false, available: true, checked: false }));
+    }, 400);
+    return () => clearTimeout(t);
+  }, [lot?.lot_number, startDate, endDate]);
+
   const handleProofFile = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -213,8 +228,9 @@ function BookingModal({ lot, zones, packages, settings, onClose, onSubmitted }) 
   };
 
   if (result) {
+    const adminLink = `${typeof window !== "undefined" ? window.location.origin : ""}?admin=1`;
     const waMsg = encodeURIComponent(
-      `Tempahan baru diterima!\nLot: ${result.lot_number} (${zone.name})\nPenyewa: ${form.renterName}\nTelefon: ${form.phone}\nPakej: ${pkg.label}\nJumlah: ${fmtRM(totalPrice)}\nKaedah bayaran: Pindahan Bank\nSila semak dashboard admin untuk sahkan.`
+      `Tempahan baru diterima!\nLot: ${result.lot_number} (${zone.name})\nPenyewa: ${form.renterName}\nTelefon: ${form.phone}\nPakej: ${pkg.label}\nJumlah: ${fmtRM(totalPrice)}\nKaedah bayaran: Pindahan Bank\n\nSila semak & sahkan tempahan ini:\n${adminLink}`
     );
     const waLink = settings.admin_whatsapp ? `https://wa.me/${settings.admin_whatsapp}?text=${waMsg}` : null;
     const mailLink = settings.admin_email ? `mailto:${settings.admin_email}?subject=${encodeURIComponent("Tempahan Baru - Lot " + result.lot_number)}&body=${waMsg}` : null;
@@ -304,7 +320,24 @@ function BookingModal({ lot, zones, packages, settings, onClose, onSubmitted }) 
                 <div className="flex justify-between font-semibold"><span className="text-slate-600">Jumlah Perlu Bayar</span><span>{fmtRM(totalPrice)}</span></div>
               </div>
               <p className="text-xs text-slate-400">Pembayaran perlu dijelaskan penuh mengikut jumlah pakej di atas — tiada bayaran ansuran/separa.</p>
-              <button onClick={() => setStep(2)} className="w-full py-2.5 rounded-lg bg-blue-600 text-white font-medium flex items-center justify-center gap-1">Seterusnya <ChevronRight size={16} /></button>
+
+              {availability.checking && (
+                <p className="text-xs text-slate-400 flex items-center gap-1"><Loader2 size={12} className="animate-spin" /> Menyemak ketersediaan tarikh...</p>
+              )}
+              {!availability.checking && availability.checked && !availability.available && (
+                <div className="flex items-start gap-2 bg-red-50 border border-red-200 text-red-700 text-xs p-2.5 rounded-lg">
+                  <AlertCircle size={15} className="mt-0.5 shrink-0" />
+                  Lot ini sudah ditempah untuk tempoh yang bertindih dengan tarikh dipilih. Sila tukar tarikh mula atau pilih lot lain.
+                </div>
+              )}
+
+              <button
+                onClick={() => setStep(2)}
+                disabled={availability.checked && !availability.available}
+                className={`w-full py-2.5 rounded-lg font-medium flex items-center justify-center gap-1 ${availability.checked && !availability.available ? "bg-slate-200 text-slate-400" : "bg-blue-600 text-white"}`}
+              >
+                Seterusnya <ChevronRight size={16} />
+              </button>
             </div>
           )}
 
