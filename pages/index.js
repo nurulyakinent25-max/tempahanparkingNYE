@@ -124,6 +124,80 @@ function SignaturePad({ onChange }) {
 }
 
 /* ============================================================
+   AvailabilityCalendar — kalendar visual (gaya tempahan hotel/court)
+   supaya pelanggan boleh KLIK terus tarikh kosong, bukan taip/teka.
+   ============================================================ */
+function AvailabilityCalendar({ busyRanges, selectedDate, onSelectDate }) {
+  const todayStr = new Date().toISOString().slice(0, 10);
+
+  const initial = selectedDate ? new Date(selectedDate + "T00:00:00") : new Date();
+  const [viewYear, setViewYear] = useState(initial.getFullYear());
+  const [viewMonth, setViewMonth] = useState(initial.getMonth()); // 0-11
+
+  const isBusy = (dateStr) => busyRanges.some((r) => dateStr >= r.start_date && dateStr <= r.end_date);
+
+  const firstOfMonth = new Date(viewYear, viewMonth, 1);
+  const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
+  const startWeekday = firstOfMonth.getDay(); // 0=Ahad
+
+  const cells = [];
+  for (let i = 0; i < startWeekday; i++) cells.push(null);
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateStr = `${viewYear}-${String(viewMonth + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+    cells.push({ day: d, dateStr, busy: isBusy(dateStr), past: dateStr < todayStr });
+  }
+
+  const goPrevMonth = () => {
+    if (viewMonth === 0) { setViewYear((y) => y - 1); setViewMonth(11); } else { setViewMonth((m) => m - 1); }
+  };
+  const goNextMonth = () => {
+    if (viewMonth === 11) { setViewYear((y) => y + 1); setViewMonth(0); } else { setViewMonth((m) => m + 1); }
+  };
+
+  const monthLabel = new Date(viewYear, viewMonth, 1).toLocaleDateString("ms-MY", { month: "long", year: "numeric" });
+
+  return (
+    <div className="border border-slate-200 rounded-lg p-3">
+      <div className="flex items-center justify-between mb-2">
+        <button type="button" onClick={goPrevMonth} className="p-1 rounded hover:bg-slate-100"><ChevronLeft size={16} /></button>
+        <p className="text-sm font-semibold text-slate-700 capitalize">{monthLabel}</p>
+        <button type="button" onClick={goNextMonth} className="p-1 rounded hover:bg-slate-100"><ChevronRight size={16} /></button>
+      </div>
+      <div className="grid grid-cols-7 gap-1 text-center text-[10px] text-slate-400 mb-1">
+        {["Ahd", "Isn", "Sel", "Rab", "Kha", "Jum", "Sab"].map((d) => <div key={d}>{d}</div>)}
+      </div>
+      <div className="grid grid-cols-7 gap-1">
+        {cells.map((c, i) => {
+          if (!c) return <div key={i} />;
+          const disabled = c.busy || c.past;
+          const isSelected = c.dateStr === selectedDate;
+          return (
+            <button
+              type="button"
+              key={i}
+              disabled={disabled}
+              onClick={() => onSelectDate(c.dateStr)}
+              className={`aspect-square rounded-lg text-xs font-medium flex items-center justify-center border transition-colors
+                ${isSelected ? "bg-blue-600 text-white border-blue-600"
+                  : c.busy ? "bg-slate-700 text-slate-400 border-slate-700 cursor-not-allowed"
+                  : c.past ? "bg-slate-50 text-slate-300 border-slate-100 cursor-not-allowed"
+                  : "bg-white text-slate-700 border-slate-300 hover:border-blue-400 hover:bg-blue-50"}`}
+            >
+              {c.day}
+            </button>
+          );
+        })}
+      </div>
+      <div className="flex items-center gap-3 mt-2.5 text-[10px] text-slate-500">
+        <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded bg-blue-600" /> Dipilih</span>
+        <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded border border-slate-300" /> Kosong</span>
+        <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded bg-slate-700" /> Ditempah</span>
+      </div>
+    </div>
+  );
+}
+
+/* ============================================================
    BookingModal
    ============================================================ */
 function BookingModal({ lot, zones, packages, settings, onClose, onSubmitted }) {
@@ -309,20 +383,8 @@ function BookingModal({ lot, zones, packages, settings, onClose, onSubmitted }) 
 
           {step === 1 && (
             <div className="space-y-4">
-              {busyLoading ? (
+              {busyLoading && (
                 <p className="text-xs text-slate-400 flex items-center gap-1"><Loader2 size={12} className="animate-spin" /> Menyemak tarikh yang telah ditempah...</p>
-              ) : busyRanges.length > 0 ? (
-                <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs text-amber-800">
-                  <p className="font-semibold mb-1">Tarikh yang TELAH ditempah untuk lot ini:</p>
-                  <ul className="list-disc pl-4 space-y-0.5">
-                    {busyRanges.map((r, i) => (
-                      <li key={i}>{fmtDateMY(r.start_date)} &ndash; {fmtDateMY(r.end_date)}</li>
-                    ))}
-                  </ul>
-                  <p className="mt-1.5 text-amber-700">Sila pilih tarikh mula di LUAR tempoh di atas.</p>
-                </div>
-              ) : (
-                <p className="text-xs text-green-700 bg-green-50 border border-green-200 rounded-lg p-2.5">Lot ini kosong sepenuhnya buat masa ini - semua tarikh boleh dipilih.</p>
               )}
 
               <div>
@@ -350,8 +412,8 @@ function BookingModal({ lot, zones, packages, settings, onClose, onSubmitted }) 
               )}
 
               <div>
-                <label className="text-sm font-medium text-slate-700">Tarikh Mula</label>
-                <input type="date" value={startDate} min={todayStr()} onChange={(e) => setStartDate(e.target.value)} className="mt-1 w-full border border-slate-300 rounded-lg px-3 py-2 text-sm" />
+                <label className="text-sm font-medium text-slate-700 mb-1.5 block">Pilih Tarikh Mula</label>
+                <AvailabilityCalendar busyRanges={busyRanges} selectedDate={startDate} onSelectDate={setStartDate} />
               </div>
 
               <div className="bg-slate-50 rounded-lg p-3 text-sm space-y-1">
