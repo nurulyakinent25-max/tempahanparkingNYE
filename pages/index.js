@@ -127,14 +127,19 @@ function SignaturePad({ onChange }) {
    AvailabilityCalendar — kalendar visual (gaya tempahan hotel/court)
    supaya pelanggan boleh KLIK terus tarikh kosong, bukan taip/teka.
    ============================================================ */
-function AvailabilityCalendar({ busyRanges, selectedDate, onSelectDate }) {
+function AvailabilityCalendar({ busyRanges, selectedDate, onSelectDate, mode = "single", rangeStart, rangeEnd, onSelectRange }) {
   const todayStr = new Date().toISOString().slice(0, 10);
 
-  const initial = selectedDate ? new Date(selectedDate + "T00:00:00") : new Date();
+  const initial = (mode === "range" ? rangeStart : selectedDate) ? new Date((mode === "range" ? rangeStart : selectedDate) + "T00:00:00") : new Date();
   const [viewYear, setViewYear] = useState(initial.getFullYear());
   const [viewMonth, setViewMonth] = useState(initial.getMonth()); // 0-11
 
   const isBusy = (dateStr) => busyRanges.some((r) => dateStr >= r.start_date && dateStr <= r.end_date);
+  // Utk mod julat: semak ada hari SIBUK antara dua tarikh (elak pilih julat yg melangkaui tempahan sedia ada.
+  const hasBusyBetween = (a, b) => {
+    const start = a < b ? a : b, end = a < b ? b : a;
+    return busyRanges.some((r) => r.start_date <= end && r.end_date >= start);
+  };
 
   const firstOfMonth = new Date(viewYear, viewMonth, 1);
   const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
@@ -156,6 +161,21 @@ function AvailabilityCalendar({ busyRanges, selectedDate, onSelectDate }) {
 
   const monthLabel = new Date(viewYear, viewMonth, 1).toLocaleDateString("ms-MY", { month: "long", year: "numeric" });
 
+  const handleClick = (dateStr) => {
+    if (mode !== "range") { onSelectDate(dateStr); return; }
+    // Klik 1: mula pemilihan baharu (check-in). Klik semula selepas julat lengkap pun mula baharu.
+    if (!rangeStart || (rangeStart && rangeEnd) || dateStr < rangeStart) {
+      onSelectRange(dateStr, null);
+      return;
+    }
+    // Klik 2 (check-out) - tolak kalau ada hari sibuk antara check-in & check-out ni.
+    if (hasBusyBetween(rangeStart, dateStr)) {
+      onSelectRange(dateStr, null); // anggap sebagai check-in baharu sahaja
+      return;
+    }
+    onSelectRange(rangeStart, dateStr);
+  };
+
   return (
     <div className="border border-slate-200 rounded-lg p-3">
       <div className="flex items-center justify-between mb-2">
@@ -163,6 +183,9 @@ function AvailabilityCalendar({ busyRanges, selectedDate, onSelectDate }) {
         <p className="text-sm font-semibold text-slate-700 capitalize">{monthLabel}</p>
         <button type="button" onClick={goNextMonth} className="p-1 rounded hover:bg-slate-100"><ChevronRight size={16} /></button>
       </div>
+      {mode === "range" && (
+        <p className="text-[11px] text-slate-400 mb-2">{!rangeStart ? "Ketik tarikh MASUK (check-in)" : !rangeEnd ? "Ketik tarikh KELUAR (check-out)" : "Julat dipilih - ketik semula utk tukar"}</p>
+      )}
       <div className="grid grid-cols-7 gap-1 text-center text-[10px] text-slate-400 mb-1">
         {["Ahd", "Isn", "Sel", "Rab", "Kha", "Jum", "Sab"].map((d) => <div key={d}>{d}</div>)}
       </div>
@@ -170,15 +193,19 @@ function AvailabilityCalendar({ busyRanges, selectedDate, onSelectDate }) {
         {cells.map((c, i) => {
           if (!c) return <div key={i} />;
           const disabled = c.busy || c.past;
-          const isSelected = c.dateStr === selectedDate;
+          const isSelected = mode === "range"
+            ? (c.dateStr === rangeStart || c.dateStr === rangeEnd)
+            : c.dateStr === selectedDate;
+          const isInRange = mode === "range" && rangeStart && rangeEnd && c.dateStr > rangeStart && c.dateStr < rangeEnd;
           return (
             <button
               type="button"
               key={i}
               disabled={disabled}
-              onClick={() => onSelectDate(c.dateStr)}
+              onClick={() => handleClick(c.dateStr)}
               className={`aspect-square rounded-lg text-xs font-medium flex items-center justify-center border transition-colors
                 ${isSelected ? "bg-blue-600 text-white border-blue-600"
+                  : isInRange ? "bg-blue-100 text-blue-700 border-blue-200"
                   : c.busy ? "bg-slate-700 text-slate-400 border-slate-700 cursor-not-allowed"
                   : c.past ? "bg-slate-50 text-slate-300 border-slate-100 cursor-not-allowed"
                   : "bg-white text-slate-700 border-slate-300 hover:border-blue-400 hover:bg-blue-50"}`}
@@ -188,8 +215,9 @@ function AvailabilityCalendar({ busyRanges, selectedDate, onSelectDate }) {
           );
         })}
       </div>
-      <div className="flex items-center gap-3 mt-2.5 text-[10px] text-slate-500">
+      <div className="flex items-center gap-3 mt-2.5 text-[10px] text-slate-500 flex-wrap">
         <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded bg-blue-600" /> Dipilih</span>
+        {mode === "range" && <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded bg-blue-100 border border-blue-200" /> Dalam julat</span>}
         <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded border border-slate-300" /> Kosong</span>
         <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded bg-slate-700" /> Ditempah</span>
       </div>
@@ -236,6 +264,19 @@ function BookingModal({ lot, zones, packages, settings, onClose, onSubmitted, in
   const totalPrice = calcTotal(pkg, qty);
   const endDate = calcEndDate(pkg, startDate, qty);
   const updateForm = (k, v) => setForm((f) => ({ ...f, [k]: v }));
+
+  // Pakej Harian: guna kalendar gaya "check-in/check-out" (ketik 2 tarikh
+  // terus) - bilangan hari dikira automatik, tak perlu taip nombor.
+  const isDailyPkg = pkg?.mode === "qty" && pkg?.unit === "hari";
+  const [rangeStart, setRangeStart] = useState(null);
+  const [rangeEnd, setRangeEnd] = useState(null);
+  useEffect(() => {
+    if (!isDailyPkg || !rangeStart || !rangeEnd) return;
+    const days = Math.round((new Date(rangeEnd) - new Date(rangeStart)) / 86400000) + 1;
+    setStartDate(rangeStart);
+    setQty(days);
+    setQtyInput(String(days));
+  }, [isDailyPkg, rangeStart, rangeEnd]);
 
   // Semak ketersediaan tarikh secara automatik (dengan lengah sedikit)
   // supaya pelanggan tahu SEGERA kalau tarikh bertindih, tanpa perlu isi
@@ -401,7 +442,7 @@ function BookingModal({ lot, zones, packages, settings, onClose, onSubmitted, in
                 </div>
               </div>
 
-              {pkg?.mode === "qty" && (
+              {pkg?.mode === "qty" && !isDailyPkg && (
                 <div>
                   <label className="text-sm font-medium text-slate-700">Bilangan {pkg.unit}</label>
                   <input type="text" inputMode="numeric" pattern="[0-9]*" value={qtyInput}
@@ -412,8 +453,23 @@ function BookingModal({ lot, zones, packages, settings, onClose, onSubmitted, in
               )}
 
               <div>
-                <label className="text-sm font-medium text-slate-700 mb-1.5 block">Pilih Tarikh Mula</label>
-                <AvailabilityCalendar busyRanges={busyRanges} selectedDate={startDate} onSelectDate={setStartDate} />
+                <label className="text-sm font-medium text-slate-700 mb-1.5 block">
+                  {isDailyPkg ? "Pilih Tarikh Masuk (Check-in) & Keluar (Check-out)" : "Pilih Tarikh Mula"}
+                </label>
+                {isDailyPkg ? (
+                  <>
+                    <AvailabilityCalendar
+                      busyRanges={busyRanges} mode="range"
+                      rangeStart={rangeStart} rangeEnd={rangeEnd}
+                      onSelectRange={(s, e) => { setRangeStart(s); setRangeEnd(e); }}
+                    />
+                    {rangeStart && rangeEnd && (
+                      <p className="text-xs text-slate-500 mt-1.5">{fmtDateMY(rangeStart)} &rarr; {fmtDateMY(rangeEnd)} &middot; <strong>{qty} hari</strong></p>
+                    )}
+                  </>
+                ) : (
+                  <AvailabilityCalendar busyRanges={busyRanges} selectedDate={startDate} onSelectDate={setStartDate} />
+                )}
               </div>
 
               <div className="bg-slate-50 rounded-lg p-3 text-sm space-y-1">
@@ -434,8 +490,8 @@ function BookingModal({ lot, zones, packages, settings, onClose, onSubmitted, in
 
               <button
                 onClick={() => setStep(2)}
-                disabled={availability.checked && !availability.available}
-                className={`w-full py-2.5 rounded-lg font-medium flex items-center justify-center gap-1 ${availability.checked && !availability.available ? "bg-slate-200 text-slate-400" : "bg-blue-600 text-white"}`}
+                disabled={(availability.checked && !availability.available) || (isDailyPkg && (!rangeStart || !rangeEnd))}
+                className={`w-full py-2.5 rounded-lg font-medium flex items-center justify-center gap-1 ${(availability.checked && !availability.available) || (isDailyPkg && (!rangeStart || !rangeEnd)) ? "bg-slate-200 text-slate-400" : "bg-blue-600 text-white"}`}
               >
                 Seterusnya <ChevronRight size={16} />
               </button>
