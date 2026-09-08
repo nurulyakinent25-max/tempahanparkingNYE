@@ -691,12 +691,33 @@ function ManualBookingForm({ adminSecret, zones, packages, lots, onDone }) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
+  // Jadual sibuk lot yang dipilih - utk kalendar (sama gaya spt borang pelanggan).
+  const [busyRanges, setBusyRanges] = useState([]);
+  useEffect(() => {
+    if (!lotNumber) { setBusyRanges([]); return; }
+    api.get(`/api/bookings/lot-schedule?lot_number=${lotNumber}`)
+      .then((d) => setBusyRanges(d.busyRanges || []))
+      .catch(() => setBusyRanges([]));
+  }, [lotNumber]);
+
+  // Pakej Harian: kalendar gaya check-in/check-out (sama spt borang pelanggan).
+  const isDailyPkg = pkg?.mode === "qty" && pkg?.unit === "hari";
+  const [rangeStart, setRangeStart] = useState(null);
+  const [rangeEnd, setRangeEnd] = useState(null);
+  useEffect(() => {
+    if (!isDailyPkg || !rangeStart || !rangeEnd) return;
+    const days = Math.round((new Date(rangeEnd) - new Date(rangeStart)) / 86400000) + 1;
+    setStartDate(rangeStart);
+    setQty(days);
+  }, [isDailyPkg, rangeStart, rangeEnd]);
+
   const updateForm = (k, v) => setForm((f) => ({ ...f, [k]: v }));
   const totalPrice = pkg ? calcTotal(pkg, qty) : 0;
   const endDate = pkg ? calcEndDate(pkg, startDate, qty) : startDate;
 
   const canSubmit = selectedLot && pkg && form.renterName && form.ic.length === 12 && form.phone.length >= 9 &&
-    form.address && form.vehicleBrand && form.vehicleColor && form.plateNumber;
+    form.address && form.vehicleBrand && form.vehicleColor && form.plateNumber &&
+    (!isDailyPkg || (rangeStart && rangeEnd));
 
   const handleSubmit = async () => {
     setError("");
@@ -734,7 +755,7 @@ function ManualBookingForm({ adminSecret, zones, packages, lots, onDone }) {
 
       <div>
         <label className="text-xs text-slate-500">Lot Kosong</label>
-        <select value={lotNumber} onChange={(e) => { setLotNumber(e.target.value); setPkgId(""); }} className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm mt-1">
+        <select value={lotNumber} onChange={(e) => { setLotNumber(e.target.value); setPkgId(""); setRangeStart(null); setRangeEnd(null); }} className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm mt-1">
           <option value="">Pilih lot...</option>
           {availableLots.map((l) => (
             <option key={l.lot_number} value={l.lot_number}>Lot {l.lot_number} ({zones.find((z) => z.code === l.zone_code)?.name})</option>
@@ -745,24 +766,38 @@ function ManualBookingForm({ adminSecret, zones, packages, lots, onDone }) {
       {selectedLot && (
         <div>
           <label className="text-xs text-slate-500">Pakej</label>
-          <select value={pkgId} onChange={(e) => setPkgId(e.target.value)} className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm mt-1">
+          <select value={pkgId} onChange={(e) => { setPkgId(e.target.value); setRangeStart(null); setRangeEnd(null); }} className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm mt-1">
             <option value="">Pilih pakej...</option>
             {zonePkgs.map((p) => <option key={p.id} value={p.id}>{p.label} ({fmtRM(p.price)}{p.mode === "qty" ? `/${p.unit}` : ""})</option>)}
           </select>
         </div>
       )}
 
-      {pkg && pkg.mode === "qty" && (
+      {pkg && pkg.mode === "qty" && !isDailyPkg && (
         <div>
           <label className="text-xs text-slate-500">Bilangan {pkg.unit}</label>
           <input type="number" min={1} value={qty} onChange={(e) => setQty(Math.max(1, parseInt(e.target.value) || 1))} className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm mt-1" />
         </div>
       )}
 
-      <div>
-        <label className="text-xs text-slate-500">Tarikh Mula</label>
-        <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm mt-1" />
-      </div>
+      {pkg && isDailyPkg ? (
+        <div>
+          <label className="text-xs text-slate-500 mb-1.5 block">Tarikh Masuk (Check-in) &amp; Keluar (Check-out)</label>
+          <AvailabilityCalendar
+            busyRanges={busyRanges} mode="range"
+            rangeStart={rangeStart} rangeEnd={rangeEnd}
+            onSelectRange={(s, e) => { setRangeStart(s); setRangeEnd(e); }}
+          />
+          {rangeStart && rangeEnd && (
+            <p className="text-[11px] text-slate-500 mt-1.5">{fmtDateMY(rangeStart)} &rarr; {fmtDateMY(rangeEnd)} &middot; <strong>{qty} hari</strong></p>
+          )}
+        </div>
+      ) : (
+        <div>
+          <label className="text-xs text-slate-500">Tarikh Mula</label>
+          <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm mt-1" />
+        </div>
+      )}
 
       {pkg && (
         <div className="bg-slate-50 rounded-lg p-2.5 text-xs flex justify-between">
