@@ -2,10 +2,10 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import {
   MapPin, Car, Lock, Search, Bell, Settings, CheckCircle2, XCircle,
   Upload, PenTool, ChevronRight, ChevronLeft, AlertCircle,
-  Trash2, Eye, X, MessageCircle, Mail, ShieldCheck, Loader2, Download, Plus, Layers,
+  Trash2, Eye, X, MessageCircle, Mail, ShieldCheck, Loader2, Download, Plus, Layers, FileText,
 } from "lucide-react";
 import Head from "next/head";
-import { api, adminHeaders, printReceipt } from "../lib/apiClient";
+import { api, adminHeaders, printReceipt, printAgreement } from "../lib/apiClient";
 import FloorPlan from "../components/FloorPlan";
 
 /* ============================================================
@@ -393,6 +393,12 @@ function BookingModal({ lot, zones, packages, settings, onClose, onSubmitted, in
             className="w-full py-2.5 rounded-lg border border-slate-300 text-slate-700 font-medium mb-2 flex items-center justify-center gap-2"
           >
             <Download size={16} /> Muat Turun / Cetak Resit
+          </button>
+          <button
+            onClick={() => printAgreement({ contractText: generateContractText(result, pkg, settings), signatureDataUrl: signature, lotNumber: result.lot_number })}
+            className="w-full py-2.5 rounded-lg border border-slate-300 text-slate-700 font-medium mb-2 flex items-center justify-center gap-2"
+          >
+            <FileText size={16} /> Muat Turun Surat Perjanjian
           </button>
           <button onClick={onClose} className="w-full py-2.5 rounded-lg bg-slate-800 text-white font-medium">Tutup</button>
         </div>
