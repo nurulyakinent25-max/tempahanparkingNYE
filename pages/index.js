@@ -271,6 +271,10 @@ function BookingModal({ lot, zones, packages, settings, onClose, onSubmitted, in
   // Pakej Harian: guna kalendar gaya "check-in/check-out" (ketik 2 tarikh
   // terus) - bilangan hari dikira automatik, tak perlu taip nombor.
   const isDailyPkg = pkg?.mode === "qty" && pkg?.unit === "hari";
+  // Kalau Pakej Harian ni dipilih utk lot ZON LAIN (bukan Zon C asalnya),
+  // ini bermakna ia guna "tempoh pengecualian sementara" - tarikh yang
+  // dipilih MESTI jatuh dalam tempoh tu, jika tidak pelayan akan tolak.
+  const isOverrideBooking = pkg?.id === "harian" && pkg?.zone_code !== lot.zone_code;
   const [rangeStart, setRangeStart] = useState(null);
   const [rangeEnd, setRangeEnd] = useState(null);
   useEffect(() => {
@@ -280,6 +284,10 @@ function BookingModal({ lot, zones, packages, settings, onClose, onSubmitted, in
     setQty(days);
     setQtyInput(String(days));
   }, [isDailyPkg, rangeStart, rangeEnd]);
+
+  const overrideDateInvalid = isOverrideBooking && rangeStart && rangeEnd &&
+    (!settings.daily_override_start || !settings.daily_override_end ||
+      rangeStart < settings.daily_override_start || rangeEnd > settings.daily_override_end);
 
   // Semak ketersediaan tarikh secara automatik (dengan lengah sedikit)
   // supaya pelanggan tahu SEGERA kalau tarikh bertindih, tanpa perlu isi
@@ -481,6 +489,12 @@ function BookingModal({ lot, zones, packages, settings, onClose, onSubmitted, in
                     {rangeStart && rangeEnd && (
                       <p className="text-xs text-slate-500 mt-1.5">{fmtDateMY(rangeStart)} &rarr; {fmtDateMY(rangeEnd)} &middot; <strong>{qty} hari</strong></p>
                     )}
+                    {overrideDateInvalid && (
+                      <div className="flex items-start gap-2 bg-red-50 border border-red-200 text-red-700 text-xs p-2.5 rounded-lg mt-2">
+                        <AlertCircle size={15} className="mt-0.5 shrink-0" />
+                        Pakej Harian untuk lot ini hanya sah pada {settings.daily_override_start ? fmtDateMY(settings.daily_override_start) : "?"} &ndash; {settings.daily_override_end ? fmtDateMY(settings.daily_override_end) : "?"}. Sila pilih tarikh dalam tempoh tersebut.
+                      </div>
+                    )}
                   </>
                 ) : (
                   <AvailabilityCalendar busyRanges={busyRanges} selectedDate={startDate} onSelectDate={setStartDate} />
@@ -505,8 +519,8 @@ function BookingModal({ lot, zones, packages, settings, onClose, onSubmitted, in
 
               <button
                 onClick={() => setStep(2)}
-                disabled={(availability.checked && !availability.available) || (isDailyPkg && (!rangeStart || !rangeEnd))}
-                className={`w-full py-2.5 rounded-lg font-medium flex items-center justify-center gap-1 ${(availability.checked && !availability.available) || (isDailyPkg && (!rangeStart || !rangeEnd)) ? "bg-slate-200 text-slate-400" : "bg-blue-600 text-white"}`}
+                disabled={(availability.checked && !availability.available) || (isDailyPkg && (!rangeStart || !rangeEnd)) || overrideDateInvalid}
+                className={`w-full py-2.5 rounded-lg font-medium flex items-center justify-center gap-1 ${(availability.checked && !availability.available) || (isDailyPkg && (!rangeStart || !rangeEnd)) || overrideDateInvalid ? "bg-slate-200 text-slate-400" : "bg-blue-600 text-white"}`}
               >
                 Seterusnya <ChevronRight size={16} />
               </button>
@@ -718,6 +732,7 @@ function ManualBookingForm({ adminSecret, zones, packages, lots, settings, onDon
 
   // Pakej Harian: kalendar gaya check-in/check-out (sama spt borang pelanggan).
   const isDailyPkg = pkg?.mode === "qty" && pkg?.unit === "hari";
+  const isOverrideBooking = pkg?.id === "harian" && selectedLot && pkg?.zone_code !== selectedLot.zone_code;
   const [rangeStart, setRangeStart] = useState(null);
   const [rangeEnd, setRangeEnd] = useState(null);
   useEffect(() => {
@@ -727,13 +742,17 @@ function ManualBookingForm({ adminSecret, zones, packages, lots, settings, onDon
     setQty(days);
   }, [isDailyPkg, rangeStart, rangeEnd]);
 
+  const overrideDateInvalid = isOverrideBooking && rangeStart && rangeEnd &&
+    (!settings?.daily_override_start || !settings?.daily_override_end ||
+      rangeStart < settings.daily_override_start || rangeEnd > settings.daily_override_end);
+
   const updateForm = (k, v) => setForm((f) => ({ ...f, [k]: v }));
   const totalPrice = pkg ? calcTotal(pkg, qty) : 0;
   const endDate = pkg ? calcEndDate(pkg, startDate, qty) : startDate;
 
   const canSubmit = selectedLot && pkg && form.renterName && form.ic.length === 12 && form.phone.length >= 9 &&
     form.address && form.vehicleBrand && form.vehicleColor && form.plateNumber &&
-    (!isDailyPkg || (rangeStart && rangeEnd));
+    (!isDailyPkg || (rangeStart && rangeEnd)) && !overrideDateInvalid;
 
   const handleSubmit = async () => {
     setError("");
@@ -806,6 +825,12 @@ function ManualBookingForm({ adminSecret, zones, packages, lots, settings, onDon
           />
           {rangeStart && rangeEnd && (
             <p className="text-[11px] text-slate-500 mt-1.5">{fmtDateMY(rangeStart)} &rarr; {fmtDateMY(rangeEnd)} &middot; <strong>{qty} hari</strong></p>
+          )}
+          {overrideDateInvalid && (
+            <div className="flex items-start gap-2 bg-red-50 border border-red-200 text-red-700 text-xs p-2.5 rounded-lg mt-2">
+              <AlertCircle size={15} className="mt-0.5 shrink-0" />
+              Pakej Harian untuk lot ini hanya sah pada {settings?.daily_override_start ? fmtDateMY(settings.daily_override_start) : "?"} &ndash; {settings?.daily_override_end ? fmtDateMY(settings.daily_override_end) : "?"}.
+            </div>
           )}
         </div>
       ) : (
