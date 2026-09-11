@@ -230,7 +230,10 @@ function AvailabilityCalendar({ busyRanges, selectedDate, onSelectDate, mode = "
    ============================================================ */
 function BookingModal({ lot, zones, packages, settings, onClose, onSubmitted, initialPkgId, initialStartDate }) {
   const zone = zones.find((z) => z.code === lot.zone_code);
-  const availablePkgs = packages.filter((p) => p.zone_code === lot.zone_code);
+  // Tempoh pengecualian sementara: Pakej Harian boleh ditempah utk SEMUA
+  // zon (bukan Zon C sahaja) jika admin tetapkan tempoh di Tetapan.
+  const dailyOverrideActive = !!(settings.daily_override_start && settings.daily_override_end);
+  const availablePkgs = packages.filter((p) => p.zone_code === lot.zone_code || (dailyOverrideActive && p.id === "harian"));
 
   // Tarikh yang SUDAH ditempah untuk lot ini - dipapar di Langkah 1 supaya
   // pelanggan boleh terus nampak tarikh mana yang kosong, macam tempahan hotel.
@@ -437,14 +440,20 @@ function BookingModal({ lot, zones, packages, settings, onClose, onSubmitted, in
               <div>
                 <label className="text-sm font-medium text-slate-700">Pilih Pakej</label>
                 <div className="grid grid-cols-1 gap-2 mt-1.5">
-                  {availablePkgs.map((p) => (
-                    <button key={p.id} onClick={() => setPkgId(p.id)} className={`text-left px-3 py-2.5 rounded-lg border text-sm ${pkgId === p.id ? "border-blue-500 bg-blue-50 ring-1 ring-blue-500" : "border-slate-200"}`}>
-                      <div className="font-medium text-slate-800">{p.label}</div>
-                      <div className="text-xs text-slate-500">
-                        {p.mode === "fixed" ? `${fmtRM(p.price)} / ${p.duration_months} bulan` : `${fmtRM(p.price)} / ${p.unit}`}
-                      </div>
-                    </button>
-                  ))}
+                  {availablePkgs.map((p) => {
+                    const isOverrideOption = p.id === "harian" && p.zone_code !== lot.zone_code;
+                    return (
+                      <button key={p.id} onClick={() => setPkgId(p.id)} className={`text-left px-3 py-2.5 rounded-lg border text-sm ${pkgId === p.id ? "border-blue-500 bg-blue-50 ring-1 ring-blue-500" : "border-slate-200"}`}>
+                        <div className="font-medium text-slate-800 flex items-center gap-1.5">
+                          {p.label}
+                          {isOverrideOption && <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-amber-100 text-amber-700">Tempoh Terhad</span>}
+                        </div>
+                        <div className="text-xs text-slate-500">
+                          {p.mode === "fixed" ? `${fmtRM(p.price)} / ${p.duration_months} bulan` : `${fmtRM(p.price)} / ${p.unit}`}
+                        </div>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -683,11 +692,12 @@ function LookupBooking({ onClose }) {
 /* ============================================================
    AdminDashboard
    ============================================================ */
-function ManualBookingForm({ adminSecret, zones, packages, lots, onDone }) {
+function ManualBookingForm({ adminSecret, zones, packages, lots, settings, onDone }) {
   const availableLots = lots.filter((l) => l.status === "available").sort((a, b) => a.lot_number - b.lot_number);
   const [lotNumber, setLotNumber] = useState("");
   const selectedLot = availableLots.find((l) => l.lot_number === Number(lotNumber));
-  const zonePkgs = selectedLot ? packages.filter((p) => p.zone_code === selectedLot.zone_code) : [];
+  const dailyOverrideActive = !!(settings?.daily_override_start && settings?.daily_override_end);
+  const zonePkgs = selectedLot ? packages.filter((p) => p.zone_code === selectedLot.zone_code || (dailyOverrideActive && p.id === "harian")) : [];
   const [pkgId, setPkgId] = useState("");
   const pkg = zonePkgs.find((p) => p.id === pkgId);
   const [qty, setQty] = useState(1);
@@ -1049,7 +1059,7 @@ function BulkBookingForm({ adminSecret, lots, onDone }) {
   );
 }
 
-function AdminDashboard({ adminSecret, zones, packages, onClose, onLogout, onChanged }) {
+function AdminDashboard({ adminSecret, zones, packages, settings, onClose, onLogout, onChanged }) {
   const [tab, setTab] = useState("pending");
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -1104,6 +1114,7 @@ function AdminDashboard({ adminSecret, zones, packages, onClose, onLogout, onCha
     try {
       await api.patch("/api/admin/settings", { settings: settingsData.settings, packages: settingsData.packages }, h);
       setToast({ type: "success", message: "Tetapan berjaya disimpan." });
+      onChanged && onChanged();
     } catch (e) { setToast({ type: "error", message: e.message }); }
     setSavingCfg(false);
   };
@@ -1163,6 +1174,7 @@ function AdminDashboard({ adminSecret, zones, packages, onClose, onLogout, onCha
               zones={zones}
               packages={packages}
               lots={overviewLots}
+              settings={settings}
               onDone={(msg) => { setToast({ type: "success", message: msg }); loadOverview(); loadBookings(); onChanged && onChanged(); }}
             />
           )}
@@ -1267,6 +1279,22 @@ function AdminDashboard({ adminSecret, zones, packages, onClose, onLogout, onCha
                 <input value={settingsData.settings.admin_email || ""} onChange={(e) => setSettingsData({ ...settingsData, settings: { ...settingsData.settings, admin_email: e.target.value } })} className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm mt-1" /></div>
               <div><label className="text-xs text-slate-500">Akaun Bank</label>
                 <input value={settingsData.settings.bank_account} onChange={(e) => setSettingsData({ ...settingsData, settings: { ...settingsData.settings, bank_account: e.target.value } })} className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm mt-1" /></div>
+
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+                <p className="text-xs font-semibold text-amber-800 mb-1">Tempoh Pengecualian Pakej Harian (sementara)</p>
+                <p className="text-[11px] text-amber-700 mb-2">Dalam tempoh ni, Pakej Harian boleh ditempah untuk SEMUA zon (bukan Zon C sahaja) - cth. hari pendaftaran pelajar. Kosongkan kedua-dua tarikh untuk matikan.</p>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="text-[11px] text-amber-700">Dari</label>
+                    <input type="date" value={settingsData.settings.daily_override_start || ""} onChange={(e) => setSettingsData({ ...settingsData, settings: { ...settingsData.settings, daily_override_start: e.target.value || null } })} className="w-full border border-amber-300 rounded-lg px-3 py-2 text-sm mt-1" />
+                  </div>
+                  <div>
+                    <label className="text-[11px] text-amber-700">Hingga</label>
+                    <input type="date" value={settingsData.settings.daily_override_end || ""} onChange={(e) => setSettingsData({ ...settingsData, settings: { ...settingsData.settings, daily_override_end: e.target.value || null } })} className="w-full border border-amber-300 rounded-lg px-3 py-2 text-sm mt-1" />
+                  </div>
+                </div>
+              </div>
+
               <div className="grid grid-cols-2 gap-3">
                 {settingsData.packages.map((p, i) => (
                   <div key={p.id}>
@@ -1533,7 +1561,7 @@ export default function Home() {
       )}
 
       {showAdmin && adminUnlocked && (
-        <AdminDashboard adminSecret={adminSecret} zones={boot.zones} packages={boot.packages}
+        <AdminDashboard adminSecret={adminSecret} zones={boot.zones} packages={boot.packages} settings={boot.settings}
           onClose={() => setShowAdmin(false)}
           onLogout={handleAdminLogout}
           onChanged={loadBoot} />
