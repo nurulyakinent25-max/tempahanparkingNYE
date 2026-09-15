@@ -3,6 +3,7 @@ import {
   MapPin, Car, Lock, Search, Bell, Settings, CheckCircle2, XCircle,
   Upload, PenTool, ChevronRight, ChevronLeft, AlertCircle,
   Trash2, Eye, X, MessageCircle, Mail, ShieldCheck, Loader2, Download, Plus, Layers, FileText,
+  ZoomIn, ZoomOut, Image as ImageIcon,
 } from "lucide-react";
 import Head from "next/head";
 import { api, adminHeaders, printReceipt, printAgreement } from "../lib/apiClient";
@@ -258,6 +259,7 @@ function BookingModal({ lot, zones, packages, settings, onClose, onSubmitted, in
   const [paymentRef, setPaymentRef] = useState("");
   const [proofImage, setProofImage] = useState(null);
   const [proofUploading, setProofUploading] = useState(false);
+  const [proofLightbox, setProofLightbox] = useState(false);
   const [signature, setSignature] = useState(null);
   const [agree, setAgree] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -599,7 +601,24 @@ function BookingModal({ lot, zones, packages, settings, onClose, onSubmitted, in
                     <label className="text-xs text-slate-500 flex items-center gap-1 mb-1"><Upload size={13} /> Muat Naik Bukti Pembayaran</label>
                     <input type="file" accept="image/*" onChange={handleProofFile} className="text-sm w-full" />
                     {proofUploading && <p className="text-xs text-slate-400 mt-1">Memproses imej...</p>}
-                    {proofImage && <img src={proofImage} alt="Bukti pembayaran" className="mt-2 rounded-lg border max-h-40 object-contain" />}
+                    {proofImage && (
+                      <div className="relative mt-2 inline-block">
+                        <img
+                          src={proofImage}
+                          alt="Bukti pembayaran"
+                          onClick={() => setProofLightbox(true)}
+                          className="rounded-lg border max-h-40 object-contain cursor-zoom-in"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setProofLightbox(true)}
+                          className="absolute bottom-1 right-1 bg-slate-900/70 text-white p-1 rounded"
+                          aria-label="Zum gambar"
+                        >
+                          <ZoomIn size={13} />
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
               ) : (
@@ -643,6 +662,10 @@ function BookingModal({ lot, zones, packages, settings, onClose, onSubmitted, in
           )}
         </div>
       </div>
+
+      {proofLightbox && proofImage && (
+        <ImageLightbox src={proofImage} alt="Bukti pembayaran" onClose={() => setProofLightbox(false)} />
+      )}
     </div>
   );
 }
@@ -1094,6 +1117,7 @@ function AdminDashboard({ adminSecret, zones, packages, settings, onClose, onLog
   const [overviewLots, setOverviewLots] = useState([]);
   const [toast, setToast] = useState(null); // { type: 'success'|'error', message }
   const [searchQuery, setSearchQuery] = useState("");
+  const [lightbox, setLightbox] = useState(null); // { src, alt } | null
 
   useEffect(() => {
     if (!toast) return;
@@ -1266,8 +1290,28 @@ function AdminDashboard({ adminSecret, zones, packages, settings, onClose, onLog
                   <p><span className="text-slate-500">Bayaran:</span> {selected.payment_method === "online" ? "Online" : "Pindahan Bank"} · Status: {selected.payment_status}</p>
                 </div>
                 <div className="space-y-3">
-                  <div><p className="text-xs font-semibold text-slate-500 mb-1">Bukti Pembayaran</p>{selected.proofUrl ? <img src={selected.proofUrl} alt="Bukti" className="rounded-lg border max-h-40 object-contain" /> : <p className="text-xs text-slate-400">Tiada</p>}</div>
-                  <div><p className="text-xs font-semibold text-slate-500 mb-1">Tandatangan</p>{selected.signatureUrl ? <img src={selected.signatureUrl} alt="Tandatangan" className="rounded-lg border bg-white max-h-24 object-contain" /> : <p className="text-xs text-slate-400">Tiada</p>}</div>
+                  <div>
+                    <p className="text-xs font-semibold text-slate-500 mb-1">Bukti Pembayaran</p>
+                    {selected.proofUrl ? (
+                      <div className="relative inline-block">
+                        <img src={selected.proofUrl} alt="Bukti" onClick={() => setLightbox({ src: selected.proofUrl, alt: "Bukti Pembayaran" })} className="rounded-lg border max-h-40 object-contain cursor-zoom-in" />
+                        <button onClick={() => setLightbox({ src: selected.proofUrl, alt: "Bukti Pembayaran" })} className="absolute bottom-1 right-1 bg-slate-900/70 text-white p-1 rounded" aria-label="Zum gambar">
+                          <ZoomIn size={13} />
+                        </button>
+                      </div>
+                    ) : <p className="text-xs text-slate-400">Tiada</p>}
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-slate-500 mb-1">Tandatangan</p>
+                    {selected.signatureUrl ? (
+                      <div className="relative inline-block">
+                        <img src={selected.signatureUrl} alt="Tandatangan" onClick={() => setLightbox({ src: selected.signatureUrl, alt: "Tandatangan" })} className="rounded-lg border bg-white max-h-24 object-contain cursor-zoom-in" />
+                        <button onClick={() => setLightbox({ src: selected.signatureUrl, alt: "Tandatangan" })} className="absolute bottom-1 right-1 bg-slate-900/70 text-white p-1 rounded" aria-label="Zum gambar">
+                          <ZoomIn size={13} />
+                        </button>
+                      </div>
+                    ) : <p className="text-xs text-slate-400">Tiada</p>}
+                  </div>
                 </div>
               </div>
               <details className="mt-3">
@@ -1337,6 +1381,51 @@ function AdminDashboard({ adminSecret, zones, packages, settings, onClose, onLog
           )}
         </div>
       </div>
+
+      {lightbox && <ImageLightbox src={lightbox.src} alt={lightbox.alt} onClose={() => setLightbox(null)} />}
+    </div>
+  );
+}
+
+/* ============================================================
+   ImageLightbox — paparan zum (in/out) untuk gambar (bukti bayaran,
+   tandatangan, dsb.) supaya butiran kecil senang disemak.
+   ============================================================ */
+function ImageLightbox({ src, alt, onClose }) {
+  const [zoom, setZoom] = useState(1);
+  return (
+    <div className="fixed inset-0 bg-black/85 z-[70] flex items-center justify-center p-4" onClick={onClose}>
+      <div className="absolute top-4 right-4 flex gap-2 z-10" onClick={(e) => e.stopPropagation()}>
+        <button onClick={() => setZoom((z) => Math.max(1, +(z - 0.5).toFixed(1)))} className="p-2 bg-white/15 hover:bg-white/25 rounded-lg text-white" aria-label="Zum keluar"><ZoomOut size={18} /></button>
+        <button onClick={() => setZoom((z) => Math.min(4, +(z + 0.5).toFixed(1)))} className="p-2 bg-white/15 hover:bg-white/25 rounded-lg text-white" aria-label="Zum masuk"><ZoomIn size={18} /></button>
+        <button onClick={onClose} className="p-2 bg-white/15 hover:bg-white/25 rounded-lg text-white" aria-label="Tutup"><X size={18} /></button>
+      </div>
+      <div className="overflow-auto max-w-full max-h-full" onClick={(e) => e.stopPropagation()}>
+        <img
+          src={src} alt={alt}
+          style={{ transform: `scale(${zoom})`, transformOrigin: "center", transition: "transform 0.15s" }}
+          className="max-w-none"
+        />
+      </div>
+      <p className="absolute bottom-4 left-1/2 -translate-x-1/2 text-white/70 text-xs">{Math.round(zoom * 100)}%</p>
+    </div>
+  );
+}
+
+/* ============================================================
+   SiteLayoutModal — papar pelan tapak sebenar (gambar rujukan)
+   supaya pelanggan/admin boleh bandingkan dengan peta interaktif.
+   ============================================================ */
+function SiteLayoutModal({ onClose }) {
+  return (
+    <div className="fixed inset-0 bg-black/85 z-[70] flex items-center justify-center p-4" onClick={onClose}>
+      <div className="max-w-4xl w-full" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between mb-2">
+          <p className="text-white text-sm font-medium">Pelan Tapak Sebenar</p>
+          <button onClick={onClose} className="p-2 bg-white/15 hover:bg-white/25 rounded-lg text-white" aria-label="Tutup"><X size={18} /></button>
+        </div>
+        <img src="/site-layout.jpg" alt="Pelan tapak parkir sebenar" className="w-full h-auto rounded-lg" />
+      </div>
     </div>
   );
 }
@@ -1349,7 +1438,7 @@ function QuickSearch({ packages, onFoundLot }) {
   const [pkgId, setPkgId] = useState("");
   const [startDate, setStartDate] = useState(todayStr());
   const [searching, setSearching] = useState(false);
-  const [results, setResults] = useState(null); // { availableLots, zone_code } | null
+  const [results, setResults] = useState(null); // { availableLots, overrideActive } | null
   const [error, setError] = useState("");
 
   const search = async () => {
@@ -1384,15 +1473,18 @@ function QuickSearch({ packages, onFoundLot }) {
           <p className="text-xs text-amber-600 mt-3">Maaf, tiada lot kosong untuk pakej &amp; tarikh ini. Cuba tarikh lain.</p>
         ) : (
           <div className="mt-3">
-            <p className="text-xs text-slate-500 mb-1.5">{results.availableLots.length} lot kosong dijumpai &mdash; klik untuk terus tempah:</p>
+            <p className="text-xs text-slate-500 mb-1.5">
+              {results.availableLots.length} lot kosong dijumpai &mdash; klik untuk terus tempah:
+              {results.overrideActive && <span className="ml-1 text-[10px] font-semibold px-1.5 py-0.5 rounded bg-amber-100 text-amber-700">Tempoh Terhad - semua zon</span>}
+            </p>
             <div className="flex flex-wrap gap-1.5">
-              {results.availableLots.map((n) => (
+              {results.availableLots.map((l) => (
                 <button
-                  key={n}
-                  onClick={() => onFoundLot(n, results.zone_code, pkgId, startDate)}
+                  key={l.lot_number}
+                  onClick={() => onFoundLot(l.lot_number, l.zone_code, pkgId, startDate)}
                   className="px-3 py-1.5 rounded-lg bg-blue-50 border border-blue-300 text-blue-700 text-sm font-medium hover:bg-blue-100"
                 >
-                  Lot {n}
+                  Lot {l.lot_number}
                 </button>
               ))}
             </div>
@@ -1412,6 +1504,7 @@ export default function Home() {
   const [prefill, setPrefill] = useState(null); // { pkgId, startDate } - dari Carian Pantas
   const [showLookup, setShowLookup] = useState(false);
   const [showAdmin, setShowAdmin] = useState(false);
+  const [showLayout, setShowLayout] = useState(false);
   const [adminUnlocked, setAdminUnlocked] = useState(false);
   const [adminSecret, setAdminSecret] = useState("");
   const [pwInput, setPwInput] = useState("");
@@ -1522,14 +1615,24 @@ export default function Home() {
       <div className="max-w-6xl mx-auto px-4 pt-4">
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 mb-4 flex items-center justify-between">
           <div><p className="text-xs text-slate-400">Lot kosong sekarang</p><p className="text-2xl font-bold text-slate-800">{totalAvailable} <span className="text-sm font-normal text-slate-400">/ {boot.lots.length}</span></p></div>
-          <a
-            href="https://www.google.com/maps/search/?api=1&query=1.8625125,103.1000196"
-            target="_blank" rel="noreferrer"
-            aria-label="Buka lokasi tapak parkir di Google Maps"
-            className="p-2 rounded-full hover:bg-blue-50 transition-colors"
-          >
-            <MapPin className="text-blue-500" size={28} />
-          </a>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setShowLayout(true)}
+              aria-label="Lihat pelan tapak sebenar"
+              className="p-2 rounded-full hover:bg-blue-50 transition-colors"
+              title="Lihat pelan tapak sebenar"
+            >
+              <ImageIcon className="text-slate-500" size={22} />
+            </button>
+            <a
+              href="https://www.google.com/maps/search/?api=1&query=1.8625125,103.1000196"
+              target="_blank" rel="noreferrer"
+              aria-label="Buka lokasi tapak parkir di Google Maps"
+              className="p-2 rounded-full hover:bg-blue-50 transition-colors"
+            >
+              <MapPin className="text-blue-500" size={28} />
+            </a>
+          </div>
         </div>
 
         <div className="grid grid-cols-3 gap-2 mb-4 text-center text-xs">
@@ -1567,6 +1670,8 @@ export default function Home() {
       )}
 
       {showLookup && <LookupBooking onClose={() => setShowLookup(false)} />}
+
+      {showLayout && <SiteLayoutModal onClose={() => setShowLayout(false)} />}
 
       {showAdmin && !adminUnlocked && (
         <div className="fixed inset-0 bg-slate-900/50 flex items-center justify-center p-4 z-50">
