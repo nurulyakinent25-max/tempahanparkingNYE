@@ -1,5 +1,6 @@
 import { supabaseAdmin } from "../../../../lib/supabaseAdmin";
 import { requireAdmin } from "../../../../lib/requireAdmin";
+import { sendWhatsapp } from "../../../../lib/notify";
 
 async function signedUrl(path) {
   if (!path) return null;
@@ -8,6 +9,31 @@ async function signedUrl(path) {
     .createSignedUrl(path, 60 * 10); // sah selama 10 minit
   if (error) return null;
   return data.signedUrl;
+}
+
+function fmtDateMY(dateStr) {
+  if (!dateStr) return "-";
+  return new Date(dateStr).toLocaleDateString("ms-MY", { day: "2-digit", month: "long", year: "numeric" });
+}
+
+// Mesej WhatsApp kepada PELANGGAN bila tempahan mereka disahkan admin -
+// beritahu lot, tempoh & no. plat, supaya mereka yakin tempahan sah dan
+// tahu bila lot tu akan "tertera" plat mereka pada peta tapak.
+function buildConfirmationMessage(booking, packageLabel) {
+  return [
+    `Tempahan Disahkan!`,
+    ``,
+    `Salam ${booking.renter_name}, tempahan anda di Lot ${booking.lot_number} telah DISAHKAN oleh admin.`,
+    ``,
+    `Pakej: ${packageLabel}`,
+    `Tempoh: ${fmtDateMY(booking.start_date)} - ${fmtDateMY(booking.end_date)}`,
+    `No. Plat: ${booking.plate_number || "-"}`,
+    ``,
+    `Mulai ${fmtDateMY(booking.start_date)}, lot ini akan dikhaskan untuk kenderaan anda dan akan kelihatan pada peta tapak kami.`,
+    ``,
+    `Terima kasih kerana menempah bersama kami.`,
+    `- Nurul Yaqeen Enterprise`,
+  ].join("\n");
 }
 
 export default async function handler(req, res) {
@@ -55,9 +81,22 @@ export default async function handler(req, res) {
           ...(decision === "disahkan" ? { confirmed_at: new Date().toISOString() } : {}),
         })
         .eq("id", id)
-        .select()
+        .select("*, packages(label)")
         .single();
       if (e1) throw e1;
+
+      // Beritahu PELANGGAN melalui WhatsApp (best-effort - tak gagalkan
+      // keseluruhan proses kalau WhatsApp gagal dihantar). DIhantar (await)
+      // sebelum respons dipulangkan supaya fungsi serverless tak ditamatkan
+      // sebelum mesej sempat keluar.
+      if (decision === "disahkan" && booking.phone) {
+        const packageLabel = booking.packages?.label || "Tempahan Pukal (Lumpsum)";
+        try {
+          await sendWhatsapp(booking.phone, buildConfirmationMessage(booking, packageLabel));
+        } catch (err) {
+          console.error("Gagal hantar WhatsApp pengesahan kepada pelanggan:", err);
+        }
+      }
 
       return res.status(200).json({ booking });
     } catch (err) {
