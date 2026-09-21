@@ -73,12 +73,17 @@ export default async function handler(req, res) {
       // tiada lagi keperluan kemas kini jadual `lots` di sini. Menukar status
       // tempahan ke 'disahkan'/'ditolak' sudah cukup: ia secara automatik
       // mengubah cara lot ini dikira pada kunjungan /api/lots seterusnya.
+      //
+      // Bila admin SAHKAN, tandakan payment_status='paid' sekali - admin
+      // mengesahkan bermakna bukti pembayaran (Pindahan Bank) telah disemak
+      // & diterima. Ini elak "Status Bayaran" kekal "pending" selama-lamanya
+      // untuk tempahan Pindahan Bank walaupun sudah disahkan.
       const { data: booking, error: e1 } = await supabaseAdmin
         .from("bookings")
         .update({
           status: decision,
           admin_note: adminNote || null,
-          ...(decision === "disahkan" ? { confirmed_at: new Date().toISOString() } : {}),
+          ...(decision === "disahkan" ? { confirmed_at: new Date().toISOString(), payment_status: "paid" } : {}),
         })
         .eq("id", id)
         .select("*, packages(label)")
